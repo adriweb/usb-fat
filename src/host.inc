@@ -788,7 +788,7 @@ controlTransferAdd:
 	push	bc
 	ld	bc,8
 	ld	a,2
-	call	.ready
+	call	.init
 	pop	bc
 	pop	de
 	pop	hl
@@ -799,10 +799,10 @@ controlTransferAdd:
 	call	nz,bulkTransferAddEnter
 	pop	af
 	rlca
-	and	a,1
-	xor	a,(3 shl 2) or 1
+	sbc	a,a
+	inc	a
 	ld	bc,1 shl 15
-.ready:
+.init:
 	call	qtdInitDummy
 	jr	qtdInit
 
@@ -923,7 +923,7 @@ bulkTransferAddEnter:
 	db	$fd
 
 ; Input:
-;  a = ioc or cpage or cerr or pid
+;  a = pid
 ;  bc = dt or len
 ;  de = buf
 ;  hl = next qtd
@@ -942,6 +942,7 @@ qtdInit:
 	ld	(iy+qtdNext),hl
 	pop	hl
 	ld	(iy+qtdAltNext),hl
+	or	a,3 shl 2	; Cerr = 3
 	ld	(iy+qtdPid),a
 	ld	(iy+qtdLen),bc
 	lea	hl,iy+qtdBufPtr
