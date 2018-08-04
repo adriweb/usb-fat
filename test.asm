@@ -38,7 +38,21 @@ initFailed:
 #define ld_iy_abc(xx) ld (iy+xx),bc \ ld (iy+xx+3),a
 
 BS_VolLab32 = 71
+BS_FilSysType32 = 82
+BS_BootCode32 = 90
+
+BPB_BytsPerSec = 11
+BPB_SecPerClus = 13
+BPB_RsvdSecCnt = 14
+BPB_NumFATs = 16
+BPB_TotSec32 = 32
+BPB_FATSz32 = 36
+BPB_ExtFlags32 = 40
+BPB_FSVer32 = 42
+BPB_RootClus32 = 44
 BPB_FSInfo32 = 48
+BPB_BkBootSec32 = 50
+
 MBR_Table = 446
 
 ; mount a logical drive
@@ -81,31 +95,30 @@ goodFatRecord:
 	push	de
 	call	_Mov11b
 	xor	a,a
-	ld	(OP6+11),a
+	ld	(OP6 + 11),a
 	pop	hl
 	debugCall(debugHLStr)				; looks good
 	debugCall(debugNewLine)
 
-	ld	a,(ix+42)
-	or	a,a
-	jr	nz,noFatRecord
-	ld	a,(ix+43)
-	or	a,a
+	lea	hl,ix + BPB_FSVer32
+	ld	a,(hl)
+	inc	hl
+	or	a,(hl)
 	jr	nz,noFatRecord				; ensure only support for fat32 v0.0
 
-	ld_ehl_ix(44)
+	ld_ehl_ix(BPB_RootClus32)
 	ld_iy_ehl(fs_dirbase)				; root directory start cluster
 	debugCallHexBlock(fs_struct+fs_dirbase, 4)
 	debugCall(debugNewLine)				; looks good
 
-	ld_ehl_ix(36)					; euhl = number of sectors per fat
+	ld_ehl_ix(BPB_FATSz32)				; euhl = number of sectors per fat
 	ld_iy_ehl(fs_fatsize)				; fs_fasize = number of sectors per fat
 	debugCallHexBlock(fs_struct+fs_fatsize, 4)
 	debugCall(debugNewLine)				; looks good
 
 	xor	a,a
 	ld	bc,0
-	ld	c,(ix+16)				; aubc = number of fats (2 usually)
+	ld	c,(ix + BPB_NumFATs)			; aubc = number of fats (2 usually)
 	call	__lmulu					; euhl = fs_fasize * aubc
 	ld_iy_ehl(fs_fasize)				; fs_fasize = number of sectors per fat
 	debugCallHexBlock(fs_struct+fs_fasize, 4)
@@ -113,8 +126,8 @@ goodFatRecord:
 
 	xor	a,a
 	ld	bc,0
-	ld	c,(ix+14)
-	ld	b,(ix+15)				; nrsv: number of reserved sectors
+	ld	c,(ix + BPB_RsvdSecCnt)
+	ld	b,(ix + BPB_RsvdSecCnt + 1)		; nrsv: number of reserved sectors
 	ld	(nrsv),bc
 	call	__ladd					; sysect: nrsv + fasize
 	ld	a,e
@@ -122,11 +135,11 @@ goodFatRecord:
 	pop	bc
 	push	bc
 	push	af
-	ld_ehl_ix(32)					; tsect: total number of sectors on the volume
+	ld_ehl_ix(BPB_TotSec32)				; tsect: total number of sectors on the volume
 	call	__lsub					; tsect - sysect
 	xor	a,a
 	ld	bc,0
-	ld	c,(ix+13)
+	ld	c,(ix + BPB_SecPerClus)
 	ld	(iy+fs_csize),c
 	call	__ldivu					; nclst: (tsect - sysect) / fs_csize;
 	ld	c,2
