@@ -1,11 +1,11 @@
 #ifdef NDEBUG
- #define debugCall(routine)
- #define debugCallChar(char)
- #define debugCallStr(src)
- #define debugCallLine(line)
- #define debugCallHexBlockBC(addr)
- #define debugCallHexBlockHL(size)
- #define debugCallHexBlock(addr,size)
+ #define debugCall(routine) ;
+ #define debugCallChar(char) ;
+ #define debugCallStr(src) ;
+ #define debugCallLine(line) ;
+ #define debugCallHexBlockBC(addr) ;
+ #define debugCallHexBlockHL(size) ;
+ #define debugCallHexBlock(addr,size) ;
 debugAbort = 0
 #else
  #define debugCall(routine) call routine

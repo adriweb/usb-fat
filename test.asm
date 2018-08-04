@@ -113,6 +113,7 @@ goodFatRecord:
 	xor	a,a
 	ld	bc,0
 	ld	c,(ix+13)
+	ld	(iy+fs_csize),c
 	call	__ldivu				; nclst: (tsect - sysect) / fs_csize;
 	ld	c,2
 	call	__ladd				; num_fatent: nclst + 2
@@ -142,7 +143,18 @@ nrsv =$+1
 	ret
 
 ; opens a file to the pointer
+; hl = name 8.3
 fs_open:
+	ret
+
+; hl = path string to file or directory
+;  z = success
+; nz = fail
+follow_path:
+	ret
+
+; builds a name based on the file input segment from 8.3 format
+create_name:
 	ret
 
 ; check for valid fat record
@@ -165,19 +177,51 @@ fs_check:
 fs_offset_magic:
 	ld	hl,xferReadDataDefault
 	add	hl,bc
-	ld	a,(hl)			; ensure record signature == 0xAA55
+	ld	a,(hl)				; ensure record signature == 0xAA55
 	cp	a,e
 	ret	nz
 	inc	hl
 	ld	a,(hl)
-	cp	a,d			; not a boot record
+	cp	a,d				; not a boot record?
 	ret
 
 ; move up to the parent directory
+;  z = success
+; nz = fail
 dir_rewind:
 	ret
 
+; Input:
+;  euhl = cluster
+; Output:
+;  euhl = sector
+util_clust2sect:
+	push	af
+	ld	iy,fs_struct
+	xor	a,a
+	ld	bc,2
+	call	__lsub				; clust -= 2
+	xor	a,a				; need to check (clst >= (fs_num_fatent - 2) == invalid at some point
+	ld	bc,0
+	ld	c,(iy+fs_csize)
+	call	__lmulu
+	ld_abc_iy(fs_database)
+	call	__ladd				; clust * fs_csize + fs_database
+	pop	af
+	ret
+
+
+; Input:
+;  iy -> directory entry
+util_get_clust:
+	ld	bc,(iy+21-2)			; ld bcu,(iy+21)
+	ld	a,(iy+20)
+	ld	c,(iy+26)
+	ld	b,(iy+27)			; clst = (dir+20) << 16 | (dir+26);
+	ret
+
 util_cp32:
+	push	bc
 	push	de
 	push	hl
 	ldi
@@ -186,6 +230,7 @@ util_cp32:
 	ldi
 	pop	hl
 	pop	de
+	pop	bc
 	ret
 
 util_cp32_little_to_big:
@@ -245,11 +290,16 @@ fs_dsect =$-fs_struct
 
 dir_index:
 	.dl	0	; current read/write index number
-dir_sfn:
-	.dl	0	; pointer to sfn (i/o) { file[8], ext[3], status[1] }
 dir_sclust:
 	.db	0,0,0,0	; table start cluster
 dir_clust:
 	.db	0,0,0,0	; current cluster
 dir_sect:
 	.db	0,0,0,0	; currect sector
+dir_fn:
+	.db	0,0,0,0,0,0,0,0	; (i/o) { file[8], ext[3], status[1] }
+	.db	0,0,0
+	.db	0
+dir_buf:
+	.db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	.db	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
