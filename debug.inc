@@ -230,4 +230,15 @@ debugNewLine:
 	pop	iy
 	ret
 
+debugHLStr:
+	push	af
+	push	de
+	push	iy
+	ld	iy,flags
+	call	_PutS
+	pop	iy
+	pop	de
+	pop	af
+	ret
+
 #endif
