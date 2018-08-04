@@ -18,6 +18,10 @@ scsiInit:
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
 	call	scsiDefaultRequest
+	ld	hl,scsiReqestSense	; request sense data
+	call	scsiDefaultRequest
+	ld	hl,scsiTestUnitReady
+	call	scsiDefaultRequest
 	ld	hl,scsiReadCapacity
 	ld	de,lb_addr
 	call	scsiRequest		; store the logical block address/size
@@ -44,10 +48,10 @@ scsiTestUnitReady:
 	.db	$00,$00,$00,$00,$06,$00,$00,$00,$00,$00,$00
 
 scsiModeSense6:
-	.db	$80,$44,$00,$00,$06,$1a,$00,$3f,$00,$44,$00 ; 44 should be c0 eventually
+	.db	$80,$c0,$00,$00,$06,$1a,$00,$3f,$00,$c0,$00 ; 44 should be c0 eventually
 
 scsiReqestSense:
-	.db	$80,$1c,$00,$00,$06,$03,$00,$00,$00,00,$1c ; 1c should be 60 eventually
+	.db	$80,$12,$00,$00,$06,$03,$00,$00,$00,$12,$00
 
 scsiReadCapacity:
 	.db	$80,$08,$00,$00,$0a,$25,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -144,7 +148,7 @@ msdCswAck:
 	call	bulkTransfer
 	call	qhReap
 	ld	hl,(packetCBW+4)
-	ld	de,(packetCSW+4)		; check transfer tags
+	ld	de,(packetCSW+4)	; check transfer tags
 	xor	a,a
 	sbc	hl,de
 	ret	nz
@@ -152,9 +156,9 @@ msdCswAck:
 	ld	de,(packetCBW)
 	xor	a,a
 	sbc	hl,de
-	ret	nz				; technically should check for 0x53 too... but meh, speedz
+	ret	nz			; technically should check for 0x53 too... but meh, speedz
 	ld	a,(packetCSW+12)
-	or	a,a				; check for good status of transfer
+	or	a,a			; check for good status of transfer
 	ret
 
 scsiFail:
@@ -179,8 +183,8 @@ findDescriptor:
 	jr	nc,notFoundDescriptor
 	push	hl
 	pop	iy
-	ld	c,(hl)				; length of descriptor
-	cp	a,(iy+1)			; bDescriptorType == 4
+	ld	c,(hl)			; length of descriptor
+	cp	a,(iy+1)		; bDescriptorType == 4
 	jr	z,foundDescriptor
 	add	hl,bc
 	jr	findDescriptor
@@ -197,7 +201,7 @@ notFoundDescriptor:
 ;  nc = not found
 ;   c = found
 findScsiEndpoints:
-	ld	bc,6 | ($50 << 8)		; check scsi bot
+	ld	bc,6 | ($50 << 8)	; check scsi bot
 	call	checkSubclassProtocol
 	jr	nz,endpointFail
 	push	hl
@@ -206,7 +210,7 @@ findScsiEndpoints:
 	ld	c,0
 	ld	de,0
 findScsiEndpointsLoop:
-	ld	a,5				; endpoint descriptor type
+	ld	a,5			; endpoint descriptor type
 	call	getDescriptor
 	ret	nc
 	ld	a,(iy+2)
@@ -253,19 +257,19 @@ endpointFail:
 findFirstMsdInterface:
 	ld	hl,(config_start)
 findMsdInterface:
-	ld	a,4				; interface descriptor type
+	ld	a,4			; interface descriptor type
 	call	getDescriptor
 	ret	nc
-	ld	a,(iy+0)			; bLength
+	ld	a,(iy+0)		; bLength
 	cp	a,9
-	jr	c,findMsdInterface		; ensure interface length >= 9
+	jr	c,findMsdInterface	; ensure interface length >= 9
 	ld	a,(iy+5)
-	cp	a,8				; bInterfaceClass == 8
+	cp	a,8			; bInterfaceClass == 8
 	jr	nz,findMsdInterface
 	debugCallStr("MSD Interface: ")
 	ld	a,(iy+2)
-	ld	(packetMSDReset+4),a		; store the interface number
-	ld	(packetMSDMaxLUN+4),a		; store the interface number
+	ld	(packetMSDReset+4),a	; store the interface number
+	ld	(packetMSDMaxLUN+4),a	; store the interface number
 	debugCall(debugHexA)
 	debugCall(debugNewLine)
 	scf
@@ -276,10 +280,10 @@ findMsdInterface:
 ;   b = protocol
 checkSubclassProtocol:
 	ld	a,(iy+6)
-	cp	a,c				; scsi subclass
+	cp	a,c			; scsi subclass
 	ret	nz
 	ld	a,(iy+7)
-	cp	a,b				; bot protocol
+	cp	a,b			; bot protocol
 	ret
 
 msdSetLun:
@@ -316,14 +320,14 @@ curr_lun:
 lb_addr:
 	.db	0
 	.dl	0
-	.db	0	; technically part of block size, but meh
+	.db	0			; technically part of block size
 block_size:
 	.dl	0
 
 packetMSDReset:
-	.db	$21,$FF,$00,$00,$00,$00,$00,$00
+	.db	$21,$ff,$00,$00,$00,$00,$00,$00
 packetMSDMaxLUN:
-	.db	$A1,$FE,$00,$00,$00,$00,$01,$00
+	.db	$a1,$fe,$00,$00,$00,$00,$01,$00
 
 packetCSW:
 	.db	$00,$00,$00,$00 ; signature

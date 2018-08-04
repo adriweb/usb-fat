@@ -63,7 +63,7 @@ fs_mount:
 	call	scsiRequestDefaultReadSector	; get the fat record sector
 	call	fs_check
 	or	a,a
-	jr	z,goodFatRecord			; ensure
+	jr	z,goodFatRecord			; verify valid fat
 noFatRecord:
 	xor	a,a
 	inc	a
