@@ -1,8 +1,8 @@
-xferCBWDataDefault equ pixelShadow2+1024
-xferReadDataDefault equ pixelShadow2+2048
+xferCBWDataDefault  := usbbuf2 + 1024
+xferReadDataDefault := usbbuf2 + 2048
 
 initMsd:
-	call    initDevice
+	call	initDevice
 	call	findFirstMsdInterface
 	call	c,findScsiEndpoints
 	ret	nc
@@ -18,16 +18,14 @@ scsiInit:
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
 	call	scsiDefaultRequest
-	ld	hl,scsiReqestSense	; request sense data
+	ld	hl,scsiReqestSense
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
 	call	scsiDefaultRequest
 	ld	hl,scsiReadCapacity
 	ld	de,lb_addr
 	call	scsiRequest		; store the logical block address/size
-	ld	hl,scsiModeSense6	; get the things?
-	call	scsiDefaultRequest
-	ld	hl,scsiReqestSense	; some drives die without this?
+	ld	hl,scsiModeSense6	; get the things
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady	; test if ready again
 	call	scsiDefaultRequest
@@ -42,30 +40,41 @@ scsiInit:
 ; <[1] in/out>,<[3] i/o length>,<[1] cdb length>,<[n] cdb>
 
 scsiInquiry:
-	.db	$80,$24,$00,$00,$06,$12,$00,$00,$00,$24,$00
+	db	$80,$24,$00,$00,$06,$12,$00,$00,$00,$24,$00
 
 scsiTestUnitReady:
-	.db	$00,$00,$00,$00,$06,$00,$00,$00,$00,$00,$00
+	db	$00,$00,$00,$00,$06,$00,$00,$00,$00,$00,$00
 
 scsiModeSense6:
-	.db	$80,$c0,$00,$00,$06,$1a,$00,$3f,$00,$c0,$00 ; 44 should be c0 eventually
+	db	$80,$fc,$00,$00,$06,$1a,$00,$3f,$00,$fc,$00
 
 scsiReqestSense:
-	.db	$80,$12,$00,$00,$06,$03,$00,$00,$00,$12,$00
+	db	$80,$12,$00,$00,$06,$03,$00,$00,$00,$12,$00
 
 scsiReadCapacity:
-	.db	$80,$08,$00,$00,$0a,$25,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	db	$80,$08,$00,$00,$0a,$25,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
-scsiRead10:	; just requests a single 512 byte sector for kicks
-	.db	$80,$00,$02,$00,$0a,$28,$00
-xferReadLba:
-	.db	$00,$00,$00,$00
+scsiRead10:
+	db	$80,$00,$02,$00,$0a,$28,$00
+scsiRead10Lba:
+	db	$00,$00,$00,$00
 scsiRead10GroupNum:
-	.db	$00
+	db	$00
 scsiRead10Length:
-	.db	$00,$01
+	db	$00,$01
 scsiRead10Ctrl:
-	.db	$00
+	db	$00
+
+scsiWrite10:
+	db	$00,$00,$02,$00,$0a,$2a,$00
+scsiWrite10Lba:
+	db	$00,$00,$00,$00
+scsiWrite10GroupNum:
+	db	$00
+scsiWrite10Length:
+	db	$00,$01
+scsiWrite10Ctrl:
+	db	$00
 
 ; Input:
 ;  hl = ptr to xfer
@@ -76,33 +85,78 @@ scsiRead10Ctrl:
 scsiDefaultRequest:
 	ld	de,xferCBWDataDefault
 scsiRequest:
+	push	ix
+	push	iy
 	call	scsiReq
+	pop	iy
+	pop	ix
 	ret	z
 	or	a,a			; csw packet status
 	jp	z,scsiFail		; fail if anything other than csw status
-					; we should perform recovery here?
+					; should we perform any recovery here?
+	ret
+
+_msd_KeepAlive:
+	ld	hl,scsiTestUnitReady
+	call	scsiDefaultRequest
+	ld	a,50
+	jp	_DelayTenTimesAms
+
+_msd_ReadSector:
+	call	__frameset0
+
+	ld	a,(ix+9)
+	ld	(scsiRead10Lba + 3),a
+	ld	a,(ix+10)
+	ld	(scsiRead10Lba + 2),a
+	ld	a,(ix+11)
+	ld	(scsiRead10Lba + 1),a
+	ld	a,(ix+12)
+	ld	(scsiRead10Lba + 0),a
+
+	ld	de,(ix+6)
+	call	scsiRequestRead
+
+	xor	a,a
+	sbc	hl,hl
+	ld	sp,ix
+	pop	ix
+	ret
+
+_msd_WriteSector:
+	call	__frameset0
+
+	ld	a,(ix+9)
+	ld	(scsiWrite10Lba + 3),a
+	ld	a,(ix+10)
+	ld	(scsiWrite10Lba + 2),a
+	ld	a,(ix+11)
+	ld	(scsiWrite10Lba + 1),a
+	ld	a,(ix+12)
+	ld	(scsiWrite10Lba + 0),a
+
+	ld	de,(ix+6)
+	call	scsiRequestWrite
+
+	xor	a,a
+	sbc	hl,hl
+	ld	sp,ix
+	pop	ix
 	ret
 
 ; Input:
-;  bc = offset in data
+;  scsiRead10Lba = logical block address
+;  de -> buffer
 ; Output:
-;  hl -> requested data thing
-scsiRequestDefaultReadSector:
-	ld	bc,0
-scsiRequestDefaultRead:
-	ld	de,xferReadDataDefault
+;  buffer loaded
 scsiRequestRead:
-	push	bc
-	push	de
 	ld	hl,scsiRead10
-	call	scsiRequest
-	pop	hl
-	pop	bc
-	add	hl,bc
+	jp	scsiRequest
 	ret
 
 scsiRequestWrite:
-	ret
+	ld	hl,scsiWrite10
+	jp	scsiRequest
 
 scsiReq:
 	ld	(xferCBWData),de
@@ -148,7 +202,7 @@ msdCswAck:
 	call	bulkTransfer
 	call	qhReap
 	ld	hl,(packetCBW+4)
-	ld	de,(packetCSW+4)	; check transfer tags
+	ld	de,(packetCSW+4)		; check transfer tags
 	xor	a,a
 	sbc	hl,de
 	ret	nz
@@ -156,13 +210,15 @@ msdCswAck:
 	ld	de,(packetCBW)
 	xor	a,a
 	sbc	hl,de
-	ret	nz			; technically should check for 0x53 too... but meh, speedz
+	ret	nz				; technically should check for 0x53 too... but meh, speedz
 	ld	a,(packetCSW+12)
-	or	a,a			; check for good status of transfer
+	or	a,a				; check for good status of transfer
 	ret
 
 scsiFail:
-	debugCallLine("Transmission Error.")
+	call	debugStr
+	db	'Transmission Error.',0
+	call	debugNewLine
 	jp	debugAbort
 
 ; Input:
@@ -183,8 +239,8 @@ findDescriptor:
 	jr	nc,notFoundDescriptor
 	push	hl
 	pop	iy
-	ld	c,(hl)			; length of descriptor
-	cp	a,(iy+1)		; bDescriptorType == 4
+	ld	c,(hl)				; length of descriptor
+	cp	a,(iy+1)			; bDescriptorType == 4
 	jr	z,foundDescriptor
 	add	hl,bc
 	jr	findDescriptor
@@ -201,7 +257,7 @@ notFoundDescriptor:
 ;  nc = not found
 ;   c = found
 findScsiEndpoints:
-	ld	bc,6 | ($50 << 8)	; check scsi bot
+	ld	bc,6 or ($50 shl 8)		; check scsi bot
 	call	checkSubclassProtocol
 	jr	nz,endpointFail
 	push	hl
@@ -210,7 +266,7 @@ findScsiEndpoints:
 	ld	c,0
 	ld	de,0
 findScsiEndpointsLoop:
-	ld	a,5			; endpoint descriptor type
+	ld	a,5				; endpoint descriptor type
 	call	getDescriptor
 	ret	nc
 	ld	a,(iy+2)
@@ -219,18 +275,20 @@ findScsiEndpointsLoop:
 	bit	0,c
 	jr	nz,endpointSkip
 	ld	(ep_in),a
-	debugCallStr("In: ")
-	debugCall(debugHexA)
-	debugCall(debugNewLine)
+;	call	debugStr
+;	db	'In: ',0
+;	call	debugHexA
+;	call	debugNewLine
 	set	0,c
 	jr	endpointSkip
 endpointOut:
 	bit	1,c
 	jr	nz,endpointSkip
 	ld	(ep_out),a
-	debugCallStr("Out: ")
-	debugCall(debugHexA)
-	debugCall(debugNewLine)
+;	call	debugStr
+;	db	'Out: ',0
+;	call	debugHexA
+;	call	debugNewLine
 	set	1,c
 endpointSkip:
 	ld	e,(iy+0)
@@ -239,8 +297,9 @@ endpointSkip:
 	ld	a,c
 	cp	a,2
 	jr	z,endpointFail
-	debugCallStr("Valid Endpoints.")
-	debugCall(debugNewLine)
+;	call	debugStr
+;	db	'Valid Endpoints.',0
+;	call	debugNewLine
 	scf
 	ret
 endpointFail:
@@ -257,21 +316,22 @@ endpointFail:
 findFirstMsdInterface:
 	ld	hl,(config_start)
 findMsdInterface:
-	ld	a,4			; interface descriptor type
+	ld	a,4				; interface descriptor type
 	call	getDescriptor
 	ret	nc
-	ld	a,(iy+0)		; bLength
+	ld	a,(iy+0)			; bLength
 	cp	a,9
-	jr	c,findMsdInterface	; ensure interface length >= 9
+	jr	c,findMsdInterface		; ensure interface length >= 9
 	ld	a,(iy+5)
-	cp	a,8			; bInterfaceClass == 8
+	cp	a,8				; bInterfaceClass == 8
 	jr	nz,findMsdInterface
-	debugCallStr("MSD Interface: ")
+;	call	debugStr
+;	db	'MSD Interface: ',0
 	ld	a,(iy+2)
-	ld	(packetMSDReset+4),a	; store the interface number
-	ld	(packetMSDMaxLUN+4),a	; store the interface number
-	debugCall(debugHexA)
-	debugCall(debugNewLine)
+	ld	(packetMSDReset+4),a		; store the interface number
+	ld	(packetMSDMaxLUN+4),a		; store the interface number
+;	call	debugHexA
+;	call	debugNewLine
 	scf
 	ret
 
@@ -280,10 +340,10 @@ findMsdInterface:
 ;   b = protocol
 checkSubclassProtocol:
 	ld	a,(iy+6)
-	cp	a,c			; scsi subclass
+	cp	a,c				; scsi subclass
 	ret	nz
 	ld	a,(iy+7)
-	cp	a,b			; bot protocol
+	cp	a,b				; bot protocol
 	ret
 
 msdSetLun:
@@ -303,50 +363,52 @@ msdReset:
 ; Output:
 ;  flags are unaffected
 msdDeviceEpOut:
-ep_out =$+1
+ep_out := $ + 1
 	ld	a,0
-	jr	+_
+	jr	msdDeviceEpIn.set
 msdDeviceEpIn:
-ep_in =$+1
+ep_in := $ + 1
 	ld	a,0
-_:	ld	iy,(device)
+.set:
+	ld	iy,(device)
 	ret
 
 max_lun:
-	.db	0
+	db	0
 curr_lun:
-	.db	0
+	db	0
 
 lb_addr:
-	.db	0
-	.dl	0
-	.db	0			; technically part of block size
+	db	0
+	db	0,0,0
+	db	0	; technically part of block size, but meh
 block_size:
-	.dl	0
+	db	0,0,0
 
 packetMSDReset:
-	.db	$21,$ff,$00,$00,$00,$00,$00,$00
+	db	$21,$FF,$00,$00,$00,$00,$00,$00
 packetMSDMaxLUN:
-	.db	$a1,$fe,$00,$00,$00,$00,$01,$00
+	db	$A1,$FE,$00,$00,$00,$00,$01,$00
 
 packetCSW:
-	.db	$00,$00,$00,$00 ; signature
-	.db	$00,$00,$00,$00 ; tag
-	.db	$00,$00,$00,$00 ; residue
-	.db	$00             ; status
-packetCSWLen = $-packetCSW
+	db	$00,$00,$00,$00 ; signature
+	db	$00,$00,$00,$00 ; tag
+	db	$00,$00,$00,$00 ; residue
+	db	$00			 ; status
+packetCSWLen := $ - packetCSW
 
 packetCBW:
-	.db	$55,$53,$42,$43	; signature
-	.db	$00,$00,$00,$00 ; tag
-	.db	$00,$00,$00,$00 ; length
-	.db	$00             ; flags
-	.db	$00		; lun
+	db	$55,$53,$42,$43	; signature
+	db	$00,$00,$00,$00 ; tag
+	db	$00,$00,$00,$00 ; length
+	db	$00			 ; flags
+	db	$00		; lun
 packetCBWCBD:
-	.db	$00		; command block length
-	.db	$00		; command block opcode
-	.db	$00,$00,$00	; command block
-	.db	$00,$00,$00,$00 ; command block
-	.db	$00,$00,$00,$00 ; command block
-	.db	$00,$00,$00,$00 ; command block
-packetCBWLen = $-packetCBW
+	db	$00		; command block length
+	db	$00		; command block opcode
+	db	$00,$00,$00	; command block
+	db	$00,$00,$00,$00 ; command block
+	db	$00,$00,$00,$00 ; command block
+	db	$00,$00,$00,$00 ; command block
+packetCBWLen := $ - packetCBW
+

@@ -1,202 +1,211 @@
-usbRangeLow		= $D13FD8
-qhFreeList		= $D13FD8
-qtdFreeList		= $D13FDB
-setupPacket		= $D13FDE
-unalloc0		= $D13FE6 ; 26 bytes
-periodicList		= $D14000 ; 4K aligned, 1K
-alignedPoolLow		= $D14400 ; 32b aligned
-qhHead			= $D17702
-alignedPoolHigh		= $D17740
-unalloc1		= $D17740 ; 119 bytes
-usbSillyState		= $D177B7 ; needs to not be $55 so nothing else gets clobbered
-unalloc2		= $D177B8 ; 4 bytes
-usbRangeHigh		= $D177BC
+usbRangeLow		:= $D13FD8
+qhFreeList		:= $D13FD8
+qtdFreeList		:= $D13FDB
+setupPacket		:= $D13FDE
+unalloc0		:= $D13FE6 ; 26 bytes
+periodicList		:= $D14000 ; 4K aligned, 1K
+alignedPoolLow		:= $D14400 ; 32b aligned
+qhHead			:= $D17702
+alignedPoolHigh		:= $D17740
+unalloc1		:= $D17740 ; 119 bytes
+usbSillyState		:= $D177B7 ; needs to not be $55 so nothing else gets clobbered
+unalloc2		:= $D177B8 ; 4 bytes
+usbRangeHigh		:= $D177BC
 
-devEndpoints		= 0
-devHubPorts		= devEndpoints+16
-devAddr			= devHubPorts+1
-devSpeed		= devAddr+1
-devHubInfo		= devSpeed+1
-devParent		= devHubInfo+2
-devChildren		= devParent+3
-devSibling		= devChildren+3
-devSize			= devSibling+3
+devEndpoints		:= 0
+devHubPorts		:= devEndpoints+16
+devAddr			:= devHubPorts+1
+devSpeed		:= devAddr+1
+devHubInfo		:= devSpeed+1
+devParent		:= devHubInfo+2
+devChildren		:= devParent+3
+devSibling		:= devChildren+3
+devSize			:= devSibling+3
 
-qtdNext			= 0
-qtdAltNext		= qtdNext+4
-bQtdAltNext		= 2
-qtdStatus		= qtdAltNext+4
-bQtdStatus		= 3
-qtdPid			= qtdStatus+1
-qtdLen			= qtdPid+1
-qtdBufPtr		= qtdLen+2
-qtdSize			= qtdBufPtr+20
+qtdNext			:= 0
+qtdAltNext		:= qtdNext+4
+bQtdAltNext		:= 2
+qtdStatus		:= qtdAltNext+4
+bQtdStatus		:= 3
+qtdPid			:= qtdStatus+1
+qtdLen			:= qtdPid+1
+qtdBufPtr		:= qtdLen+2
+qtdSize			:= qtdBufPtr+20
 
-bQtdStatusActive	= 7
-bmQtdStatusActive	= 1<<bQtdStatusActive
-bQtdStatusHalted	= 6
-bmQtdStatusHalted	= 1<<bQtdStatusHalted
-bQtdStatusBufErr	= 5
-bmQtdStatusBufErr	= 1<<bQtdStatusBufErr
-bQtdStatusBabble	= 4
-bmQtdStatusBabble	= 1<<bQtdStatusBabble
-bQtdStatusXactErr	= 3
-bmQtdStatusXactErr	= 1<<bQtdStatusXactErr
-bQtdStatusMissedUframe	= 2
-bmQtdStatusMissedUframe	= 1<<bQtdStatusMissedUframe
-bQtdStatusSplitState	= 1
-bmQtdStatusSplitState	= 1<<bQtdStatusSplitState
+bQtdStatusActive	:= 7
+bmQtdStatusActive	:= 1 shl bQtdStatusActive
+bQtdStatusHalted	:= 6
+bmQtdStatusHalted	:= 1 shl bQtdStatusHalted
+bQtdStatusBufErr	:= 5
+bmQtdStatusBufErr	:= 1 shl bQtdStatusBufErr
+bQtdStatusBabble	:= 4
+bmQtdStatusBabble	:= 1 shl bQtdStatusBabble
+bQtdStatusXactErr	:= 3
+bmQtdStatusXactErr	:= 1 shl bQtdStatusXactErr
+bQtdStatusMissedUframe	:= 2
+bmQtdStatusMissedUframe	:= 1 shl bQtdStatusMissedUframe
+bQtdStatusSplitState	:= 1
+bmQtdStatusSplitState	:= 1 shl bQtdStatusSplitState
 
-qhOff			= 1<<1
-qhNext			= -qhOff
-qhAddr			= qhNext+4
-qhEndPt			= qhAddr+1
-qhMaxPktLen		= qhEndPt+1
-qhSmask			= qhMaxPktLen+2
-qhCmask			= qhSmask+1
-qhHubAddr		= qhCmask+1
-qhHubPort		= qhHubAddr+1
-qhCurQtd		= qhHubPort+1
-qhOverlay		= qhCurQtd+4
-qhDir			= qhOverlay+qtdSize
-qhType			= qhDir+1
-qhPrev			= qhType+1
-qhFirstQtd		= qhPrev+3
-qhLastQtd		= qhFirstQtd+3
-qhSize			= qhLastQtd+3
+qhOff			:= 1 shl 1
+qhNext			:= -qhOff
+qhAddr			:= qhNext+4
+qhEndPt			:= qhAddr+1
+qhMaxPktLen		:= qhEndPt+1
+qhSmask			:= qhMaxPktLen+2
+qhCmask			:= qhSmask+1
+qhHubAddr		:= qhCmask+1
+qhHubPort		:= qhHubAddr+1
+qhCurQtd		:= qhHubPort+1
+qhOverlay		:= qhCurQtd+4
+qhDir			:= qhOverlay+qtdSize
+qhType			:= qhDir+1
+qhPrev			:= qhType+1
+qhFirstQtd		:= qhPrev+3
+qhLastQtd		:= qhFirstQtd+3
+qhSize			:= qhLastQtd+3
 
-bmRequestType		= 0
-bRequest		= 1
-wValue			= 2
-wIndex			= 4
-wLength			= 6
+bmRequestType		:= 0
+bRequest		:= 1
+wValue			:= 2
+wIndex			:= 4
+wLength			:= 6
 
-reqTypeGetStat		= 0
-reqTypeClrFeat		= 1
-reqTypeSetFeat		= 3
-reqTypeSetAddr		= 5
-reqTypeGetDesc		= 6
-reqTypeSetDesc		= 7
-reqTypeGetConf		= 8
-reqTypeSetConf		= 9
-reqTypeGetIface		= 10
-reqTypeSetIface		= 11
-reqTypeSyncFrame	= 12
+reqTypeGetStat		:= 0
+reqTypeClrFeat		:= 1
+reqTypeSetFeat		:= 3
+reqTypeSetAddr		:= 5
+reqTypeGetDesc		:= 6
+reqTypeSetDesc		:= 7
+reqTypeGetConf		:= 8
+reqTypeSetConf		:= 9
+reqTypeGetIface		:= 10
+reqTypeSetIface		:= 11
+reqTypeSyncFrame	:= 12
 
-descTypeDev		= 1
-descTypeConf		= 2
-descTypeStr		= 3
-descTypeIface		= 4
-descTypeEndpt		= 5
-descTypeDevQual		= 6
-descTypeOtherConf	= 7
-descTypeIfacePwr	= 8
+descTypeDev		:= 1
+descTypeConf		:= 2
+descTypeStr		:= 3
+descTypeIface		:= 4
+descTypeEndpt		:= 5
+descTypeDevQual		:= 6
+descTypeOtherConf	:= 7
+descTypeIfacePwr	:= 8
 
-bLength			= 0
-bDescriptorType		= bLength+1
+bLength			:= 0
+bDescriptorType		:= bLength+1
 
-bcdUSB			= bDescriptorType+1
-bDeviceClass		= bcdUSB+2
-bDeviceSubClass		= bDeviceClass+1
-bDeviceProtocol		= bDeviceSubClass+1
-bMaxPacketSize0		= bDeviceProtocol+6
+bcdUSB			:= bDescriptorType+1
+bDeviceClass		:= bcdUSB+2
+bDeviceSubClass		:= bDeviceClass+1
+bDeviceProtocol		:= bDeviceSubClass+1
+bMaxPacketSize0		:= bDeviceProtocol+6
 
-idVendor		= bMaxPacketSize0+1
-idProduct		= idVendor+2
-bcdDevice		= idProduct+2
-iManufacturer		= bcdDevice+2
-iProduct		= iManufacturer+1
-iSerialNumber		= iProduct+1
-bNumConfigurations	= iSerialNumber+1
-descLenDev		= bNumConfigurations+1
+idVendor		:= bMaxPacketSize0+1
+idProduct		:= idVendor+2
+bcdDevice		:= idProduct+2
+iManufacturer		:= bcdDevice+2
+iProduct		:= iManufacturer+1
+iSerialNumber		:= iProduct+1
+bNumConfigurations	:= iSerialNumber+1
+descLenDev		:= bNumConfigurations+1
 
-bNumQualConfigurations	= bDeviceProtocol+1
-bQualReserved		= bNumQualConfigurations+1
-descLenDevQual		= bQualReserved+1
+bNumQualConfigurations	:= bDeviceProtocol+1
+bQualReserved		:= bNumQualConfigurations+1
+descLenDevQual		:= bQualReserved+1
 
-wTotalLength		= bDescriptorType+1
-bNumInterfaces		= wTotalLength+2
-bConfigurationValue	= bNumInterfaces+1
-iConfiguration		= bConfigurationValue+1
-bmInterfaceAttributes	= iConfiguration+1
-bMaxPower		= bmInterfaceAttributes+1
-descLenConf		= bMaxPower+1
+wTotalLength		:= bDescriptorType+1
+bNumInterfaces		:= wTotalLength+2
+bConfigurationValue	:= bNumInterfaces+1
+iConfiguration		:= bConfigurationValue+1
+bmInterfaceAttributes	:= iConfiguration+1
+bMaxPower		:= bmInterfaceAttributes+1
+descLenConf		:= bMaxPower+1
 
-bInterfaceNumber	= bDescriptorType+1
-bAlternateSetting	= bInterfaceNumber+1
-bNumEndpoints		= bAlternateSetting+1
-bInterfaceClass		= bNumEndpoints+1
-bInterfaceSubClass	= bInterfaceClass+1
-bInterfaceProtocol	= bInterfaceSubClass+1
-iInterface		= bInterfaceProtocol+1
-descLenIface		= iInterface+1
+bInterfaceNumber	:= bDescriptorType+1
+bAlternateSetting	:= bInterfaceNumber+1
+bNumEndpoints		:= bAlternateSetting+1
+bInterfaceClass		:= bNumEndpoints+1
+bInterfaceSubClass	:= bInterfaceClass+1
+bInterfaceProtocol	:= bInterfaceSubClass+1
+iInterface		:= bInterfaceProtocol+1
+descLenIface		:= iInterface+1
 
-bEndpointAddress	= bDescriptorType+1
-bmEndpointAttributes	= bEndpointAddress+1
-wMaxPacketSize		= bmEndpointAttributes+1
-bInterval		= wMaxPacketSize+2
-descLenEndpt		= bInterval+1
+bEndpointAddress	:= bDescriptorType+1
+bmEndpointAttributes	:= bEndpointAddress+1
+wMaxPacketSize		:= bmEndpointAttributes+1
+bInterval		:= wMaxPacketSize+2
+descLenEndpt		:= bInterval+1
 
 usbInit:
 	ld	hl,mpTmrCtrl
 	res	bTmr3Enable,(hl)
 	xor	a,a
 	ld	(usbSillyState),a
-	debugCallLine("Waiting for plug a...")
-_:	call	_usb_SelfPowered
-	jr	nz,-_
+;	call	debugStr
+;	db	'waiting for usb...',0
+;	call	debugNewLine
+.waitPlug:
+	call	_usb_SelfPowered
+	jr	nz,.waitPlug
 	call	usbChipReset
 	ld	hl,periodicList
 	ld	(mpUsbPeriodicListBase),hl
 	xor	a,a
 	ld	b,a
 	inc	a
-_:	ld	(hl),a
+.fill:
+	ld	(hl),a
 	inc	hl
 	inc	hl
 	inc	hl
 	inc	hl
-	djnz	-_
+	djnz	.fill
 ;	ld	hl,alignedPoolLow
 	ld	e,a
 	ld	c,a
-_:	ld	l,qhOff
+.check:
+	ld	l,qhOff
 	ld	(hl),bc
 	push	hl
 	pop	bc
 	ld	a,64
-_:	ld	l,a
+.loop:
+	ld	l,a
 	ld	(hl),de
 	push	hl
 	pop	de
 	add	a,32
-	jr	nz,-_
+	jr	nz,.loop
 	ld	l,a
 	inc	h
 	ld	a,h
-	cp	a,alignedPoolHigh>>8&$FF
-	jr	nz,--_
+	cp	a,(alignedPoolHigh shr 8) and $FF
+	jr	nz,.check
 	ld	(qhFreeList),bc
 	ld	(qtdFreeList),de
 	ld	ix,qhHead
 ;	lea	hl,ix+qhNext
 	ld	(hl),ix
-	ld	(ix+qhEndPt),1<<7
+	ld	(ix+qhEndPt),1 shl 7
 	ld	(ix+qhOverlay+qtdNext),1
 	ld	(ix+qhOverlay+qtdAltNext),1
 	ld	(ix+qhOverlay+qtdStatus),bmQtdStatusHalted
 	ld	(ix+qhPrev),ix
 	ld	(mpUsbAsyncListAddr),hl
 	ld	hl,mpUsbCmd
-	ld	(hl),(1<<5)|(1<<4)|(2<<2)|(1<<0)
+	ld	(hl),(1 shl 5) or (1 shl 4) or (2 shl 2) or (1 shl 0)
 ;	jr	usbWaitForConnection
 
 usbWaitForConnection:
 	call	usbBusPower
-	debugCallLine("Waiting for connection...")
+;	call	debugStr
+;	db	'Waiting for connection...',0
+;	call	debugNewLine
 	ld	hl,mpUsbPortSC
-_:	bit	0,(hl)
-	jr	z,-_
+.wait:
+	bit	0,(hl)
+	jr	z,.wait
 	call	usbBusReset
 	ld	ix,ep0Desc
 	lea	iy,ix+devRoot-ep0Desc
@@ -204,7 +213,7 @@ _:	bit	0,(hl)
 	ld	(reqSetAddr+wValue),a
 	ld	(iy+devAddr),a
 	ld	a,(mpUsbOtgCsr+2)
-	and	a,3<<6
+	and	a,3 shl 6
 	rrca
 	rrca
 	ld	(iy+devSpeed),a
@@ -223,7 +232,9 @@ _:	bit	0,(hl)
 	call	controlTransferAdd
 	ld	de,reqSetAddr
 	call	controlTransferAdd
-	debugCallLine("Transfers added...")
+;	call	debugStr
+;	db	'Transfers added...',0
+;	call	debugNewLine
 	call	qhWait
 	call	z,debugAbort
 	pop	iy
@@ -232,9 +243,11 @@ _:	bit	0,(hl)
 	ld	a,(iy+7)
 	ld	(ix+qhMaxPktLen),a
 	lea	hl,iy
-	debugCallStr("Device descriptor received: ")
-	debugCallHexBlockHL(8)
-	debugCall(debugNewLine)
+;	call	debugStr
+;	db	'Device descriptor received: ',0
+;	call	debugHexBlockHL
+;	db	8
+;	call	debugNewLine
 	jp	qtdFree
 
 usbCleanup:
@@ -245,7 +258,9 @@ usbCleanup:
 	jp	_MemClear
 
 usbChipReset:
-	debugCallLine("Resetting chip...")
+;	call	debugStr
+;	db	'Resetting chip...',0
+;	call	debugNewLine
 	ld	a,7
 	ld	(mpUsbIdle),a
 	ld	de,$2B0
@@ -256,21 +271,29 @@ usbChipReset:
 ;	jr	usbHostReset
 
 usbHostReset:
-	debugCallLine("Waiting for host to stop...")
+;	call	debugStr
+;	db	'Waiting for host to stop...',0
+;	call	debugNewLine
 	ld	hl,mpUsbCmd
 	ld	(hl),h
 	ld	l,usbSts+1
-_:	bit	12-8,(hl)
-	jr	z,-_
-	debugCallLine("Waiting for host to reset...")
+.wait_stop:
+	bit	12-8,(hl)
+	jr	z,.wait_stop
+;	call	debugStr
+;	db	'Waiting for host to reset...',0
+;	call	debugNewLine
 	ld	l,usbCmd
-	ld	(hl),(2<<2)|(1<<1)
-_:	bit	1,(hl)
-	jr	nz,-_
+	ld	(hl),(2 shl 2) or (1 shl 1)
+.wait_host:
+	bit	1,(hl)
+	jr	nz,.wait_host
 	ret
 
 usbBusPower:
-	debugCallLine("Powering bus...")
+;	call	debugStr
+;	db	'Powering bus...',0
+;	call	debugNewLine
 	call	$21B70
 	ld	hl,mpUsbOtgCsr
 	res	5,(hl)
@@ -278,13 +301,16 @@ usbBusPower:
 	ret
 
 usbBusReset:
-	debugCallLine("Resetting bus...")
+;	call	debugStr
+;	db	'Resetting bus...',0
+;	call	debugNewLine
 	ld	hl,mpUsbPortSC+1
 	set	0,(hl)
 	call	_Delay10ms
 	res	0,(hl)
-_:	bit	0,(hl)
-	jr	nz,-_
+.wait:
+	bit	0,(hl)
+	jr	nz,.wait
 	ret
 
 ; Input:
@@ -297,7 +323,8 @@ _:	bit	0,(hl)
 hubPortsInit:
 	ld	b,(ix+devHubPorts)
 	lea	iy,ix-3
-_:	call	qtdAlloc
+.clear:
+	call	qtdAlloc
 	ld	(iy+devSibling),hl
 	push	hl
 	pop	iy
@@ -307,7 +334,7 @@ _:	call	qtdAlloc
 	ld	(hl),ix
 	ld	(iy+devChildren),1
 	pop	bc
-	djnz	-_
+	djnz	.clear
 	ld	(iy+devSibling),1
 	ret
 
@@ -316,25 +343,28 @@ _:	call	qtdAlloc
 ; Output:
 ;  cf = done
 ;  iy = next dev
-_:	scf
+devLoad:
+	scf
 	bit	0,(iy+devParent)
 	ret	nz
 	ld	iy,(iy+devParent)
 devNext:
 	bit	0,(iy+devSibling)
-	jr	nz,-_
-_:	ld	iy,(iy+devSibling)
-_:	or	a,a
+	jr	nz,devLoad
+.sibling:
+	ld	iy,(iy+devSibling)
+.children:
+	or	a,a
 	bit	0,(iy+devChildren)
 	ret	nz
 	lea	iy,iy-3
-	jr	--_
+	jr	.sibling
 
 ; Output:
 ;  iy = first dev
 devFirst:
 	ld	iy,devRoot
-	jr	-_
+	jr	devNext.children
 
 ; Input:
 ;  ix = config desc
@@ -362,15 +392,17 @@ devSelectConfig:
 	call	controlDefaultTransfer
 	pop	iy
 	ex	(sp),ix
-	call	_
+	call	.next
 	pop	ix
 	call	c,debugAbort
 	jp	qhWait
-_:	or	a,a
+.next:
+	or	a,a
 	sbc	hl,hl
 	ex	de,hl
 	ld	hl,(ix+wTotalLength)
-_:	ld	a,(ix+bLength)
+.loop:
+	ld	a,(ix+bLength)
 	cp	a,2
 	ret	c
 	ld	e,a
@@ -378,7 +410,7 @@ _:	ld	a,(ix+bLength)
 	ret	c
 	ld	a,(ix+bDescriptorType)
 	cp	a,5
-	jr	nz,+_
+	jr	nz,.skip
 	ld	a,(ix+bLength)
 	cp	a,7
 	ret	c
@@ -389,11 +421,12 @@ _:	ld	a,(ix+bLength)
 	pop	ix
 	pop	hl
 	pop	de
-_:	ld	a,l
+.skip:
+	ld	a,l
 	or	a,h
 	ret	z
 	add	ix,de
-	jr	--_
+	jr	.loop
 
 ; Input:
 ;  a = index
@@ -435,22 +468,24 @@ qhAlloc:
 ;  hl = ?
 qhWait:
 	ld	hl,(ix+qhFirstQtd)
-_:;	debugCallStr("Waiting for transfer ")
-;	debugCall(debugHexUHL)
-;	debugCallLine(" to complete...")
+.wait:
+;	debugCallStr	'Waiting for transfer '
+;	debugCall	debugHexUHL
+;	debugCallLine	' to complete...'
 	ld	de,(hl) ; FIXME: short packets!!!
 	bit	0,e
 	ret	nz
 	set	bQtdStatus,l
-_:	bit	7,(hl)
-	jr	nz,-_
+.status:
+	bit	7,(hl)
+	jr	nz,.status
 	ld	a,(hl)
 	res	bQtdStatus,l
 	call	qtdFree
 	ex	de,hl
 	ld	(ix+qhFirstQtd),hl
 	bit	6,a
-	jr	z,--_
+	jr	z,.wait
 	call	debugAbort
 
 ; Input:
@@ -464,23 +499,26 @@ _:	bit	7,(hl)
 qhReap:
 	ld	hl,(ix+qhFirstQtd)
 	xor	a,a
-	jr	++++_
-_:	and	a,bmQtdStatusHalted|bmQtdStatusBufErr|bmQtdStatusBabble|bmQtdStatusXactErr|bmQtdStatusMissedUframe<<1
-	jr	nz,++_
+	jr	.wait
+.loop:
+	and	a,(bmQtdStatusHalted or bmQtdStatusBufErr or bmQtdStatusBabble or bmQtdStatusXactErr or bmQtdStatusMissedUframe) shl 1
+	jr	nz,.skip
 	set	bQtdStatus,l
-_:	ld	a,(hl)
+.shift:	ld	a,(hl)
 	rlca
-	jr	c,-_
+	jr	c,.shift
 	res	bQtdStatus,l
-_:	call	qtdFree
+.skip:
+	call	qtdFree
 	ex	de,hl
 	ld	(ix+qhFirstQtd),hl
-_:;	debugCallStr("Waiting for transfer ")
-;	debugCall(debugHexUHL)
-;	debugCallLine(" to complete...")
+.wait:
+;	debugCallStr	'Waiting for transfer '
+;	debugCall	debugHexUHL
+;	debugCallLine	' to complete...'
 	ld	de,(hl) ; FIXME: short packets!!!
 	bit	0,e
-	jr	z,----_
+	jr	z,.loop
 	ld	(ix+qhOverlay+qtdNext),hl ; flush any pending transactions
 	ld	(ix+qhOverlay+qtdAltNext),hl
 	ld	(ix+qhOverlay+qtdStatus),0 ; clear pipe halt
@@ -507,23 +545,26 @@ qhInit:
 	and	a,$f
 	or	a,d
 	bit	1,b;(ix+bmEndpointAttributes)
-	jr	nz,_
-	or	a,1<<6
-_:	inc	hl;qh+qhEndPt
+	jr	nz,.skip
+	or	a,1 shl 6
+.skip:
+	inc	hl;qh+qhEndPt
 	ld	(hl),a
 	ld	de,(ix+wMaxPacketSize)
 	inc	hl;qh+qhMaxPktLen
 	ld	(hl),e
 	bit	5,a
 	ld	a,b
-	ld	e,4<<4
-	jr	nz,_
-	ld	e,1<<3
+	ld	e,4 shl 4
+	jr	nz,.next
+	ld	e,1 shl 3
 	rrca
-_:	rrca
-	jr	nc,_
+.next:
+	rrca
+	jr	nc,.check
 	ld	e,0
-_:	ld	a,d
+.check:
+	ld	a,d
 	and	a,7
 	or	a,e
 	inc	hl;qh+qhMaxPktLen+1
@@ -535,7 +576,7 @@ _:	ld	a,d
 	ld	(hl),a
 	rrca
 	sbc	a,a
-	and	a,7<<2
+	and	a,7 shl 2
 	ld	e,a
 	inc	hl;qh+qhCmask
 	ld	(hl),de
@@ -572,8 +613,9 @@ _:	ld	a,d
 	ld	hl,mpUsbCmd
 	set	6,(hl)
 	ld	l,usbSts
-_:	bit	5,(hl)
-	jr	z,-_
+.loop:
+	bit	5,(hl)
+	jr	z,.loop
 	ex	de,hl
 	ld	l,qhOff
 ;	jr	qhFree
@@ -746,7 +788,7 @@ controlTransferAdd:
 	push	bc
 	ld	bc,8
 	ld	a,2
-	call	_
+	call	.ready
 	pop	bc
 	pop	de
 	pop	hl
@@ -758,12 +800,14 @@ controlTransferAdd:
 	pop	af
 	rlca
 	and	a,1
-	xor	a,3<<2|1
-	ld	bc,1<<15
-_:	call	qtdInitDummy
+	xor	a,(3 shl 2) or 1
+	ld	bc,1 shl 15
+.ready:
+	call	qtdInitDummy
 	jr	qtdInit
 
-_:	push	de
+.add:
+	push	de
 	add	hl,bc
 	ld	bc,(ix+qhMaxPktLen)
 	sla	c
@@ -778,26 +822,29 @@ _:	push	de
 	ld	a,c
 	and	a,e
 	or	a,b
-	jr	z,+++_
+	jr	z,.test
 	push	hl
 	ld	a,h
 	ld	c,l
 	sbc	hl,hl
 	inc.s	de
 	ld	b,16
-_:	sla	c
+.loop:
+	sla	c
 	rla
 	adc	hl,hl
 	sbc	hl,de
-	jr	nc,_
+	jr	nc,.check
 	add	hl,de
-_:	djnz	--_
+.check:
+	djnz	.loop
 	ex	de,hl
 	pop	hl
 	or	a,a
 	sbc	hl,de
-	jr	++_
-_:	ld	a,e
+	jr	.next
+.test:
+	ld	a,e
 	cpl
 	and	a,l
 	ld	l,a
@@ -805,7 +852,8 @@ _:	ld	a,e
 	cpl
 	and	a,h
 	ld	h,a
-_:	pop	de
+.next:
+	pop	de
 	pop	af
 	push	hl
 	pop	bc
@@ -815,12 +863,12 @@ _:	pop	de
 	push	hl
 	call	qtdInitDummy
 	push	iy
-	call	++_
+	call	bulkTransferAddEnter.add
 	pop	iy
 	pop	bc
 	pop	de
 	pop	hl
-	jr	_
+	jr	bulkTransferAddEnter.init
 
 ; Input:
 ;  a = ep
@@ -855,7 +903,8 @@ bulkTransferAddEnter:
 	call	qtdInitDummy
 	push	hl
 	pop	iy
-_:	push	bc
+.init:
+	push	bc
 	push	af
 	ld	a,d
 	and	a,$f
@@ -865,16 +914,17 @@ _:	push	bc
 	ld	h,a
 	ld	l,e
 	sbc	hl,bc
-	jr	c,------_
+	jr	c,controlTransferAdd.add
 	pop	af
 	pop	bc
 	lea	hl,iy
-_:	set	7,b
-	.db	$fd
+.add:
+	set	7,b
+	db	$fd
 
 ; Input:
-;  a = ioc|cpage|cerr|pid
-;  bc = dt|len
+;  a = ioc or cpage or cerr or pid
+;  bc = dt or len
 ;  de = buf
 ;  hl = next qtd
 ;  ix = qh
@@ -896,7 +946,8 @@ qtdInit:
 	ld	(iy+qtdLen),bc
 	lea	hl,iy+qtdBufPtr
 	ld	b,5
-_:	ld	(hl),de
+.loop:
+	ld	(hl),de
 	ld	a,l
 	add	a,4
 	ld	l,a
@@ -905,22 +956,22 @@ _:	ld	(hl),de
 	ld	d,a
 	ld	e,$ff
 	inc	de
-	djnz	-_
+	djnz	.loop
 	ld	(iy+qtdStatus),bmQtdStatusActive
 	ret
 
 reqGetDevDesc8:
-	.db	$80,reqTypeGetDesc,0,descTypeDev,0,0,8,0
+	db	$80,reqTypeGetDesc,0,descTypeDev,0,0,8,0
 reqSetAddr:
-	.db	$00,reqTypeSetAddr,0,0,0,0,0,0
+	db	$00,reqTypeSetAddr,0,0,0,0,0,0
 reqGetConfDesc4:
-	.db	$80,reqTypeGetDesc,0,descTypeConf,0,0,4,0
+	db	$80,reqTypeGetDesc,0,descTypeConf,0,0,4,0
 reqSetConf:
-	.db	$00,reqTypeSetConf,0,0,0,0,0,0
+	db	$00,reqTypeSetConf,0,0,0,0,0,0
 ep0Desc:
-	.db	descLenEndpt,descTypeEndpt,0,0,8,0,0
-	.block	-$&15
+	db	descLenEndpt,descTypeEndpt,0,0,8,0,0
+	align	16
 devRoot:
-	.block	devHubInfo
-	.db	1<<7,1<<6
-	.dl	1,1,1
+	ds	devHubInfo
+	db	1 shl 7,1 shl 6
+	db	1,0,0,1,0,0,1,0,0

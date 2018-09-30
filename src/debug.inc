@@ -1,30 +1,16 @@
-#ifdef NDEBUG
- #define debugCall(routine) ;
- #define debugCallChar(char) ;
- #define debugCallStr(src) ;
- #define debugCallLine(line) ;
- #define debugCallHexBlockBC(addr) ;
- #define debugCallHexBlockHL(size) ;
- #define debugCallHexBlock(addr,size) ;
-debugAbort = 0
-#else
- #define debugCall(routine) call routine
- #define debugCallChar(char) call debugChar \ .db char
- #define debugCallStr(str) call debugStr \ .db str,0
- #define debugCallLine(line) call debugStr \ .db line,0 \ call debugNewLine
- #define debugCallHexBlockBC(addr) call debugHexBlockBC \ .dl addr
- #define debugCallHexBlockHL(size) call debugHexBlockHL \ .db size
- #define debugCallHexBlock(addr,size) call debugHexBlock \ .dl addr \ .db size
-
 debugAbort:
-	debugCall(debugNewLine)
-	debugCallStr("Abort called at ")
+	call	debugNewLine
+	call	debugStr
+	db	'Abort called at ',0
 	ld	b,5
-	jr	++_
-_:	debugCallStr("<-")
-_:	pop	hl
-	debugCall(debugHexUHL)
-	djnz	--_
+	jr	.skip
+.string:
+	call	debugStr
+	db	'<-',0
+.skip:
+	pop	hl
+	call	debugHexUHL
+	djnz	.string
 	jr	$
 
 debugHexBlockBC:
@@ -36,12 +22,13 @@ debugHexBlockBC:
 	inc	hl
 	inc	hl
 	inc	hl
-_:	call	debugHex_DE_
+.next:
+	call	debugHex_DE_
 	inc	de
 	dec	bc
 	ld	a,c
 	or	a,b
-	jr	nz,-_
+	jr	nz,.next
 	pop	af
 	pop	bc
 	pop	de
@@ -54,9 +41,10 @@ debugHexBlockHL:
 	push	bc
 	ld	b,(hl)
 	inc	hl
-_:	call	debugHex_DE_
+.next:
+	call	debugHex_DE_
 	inc	de
-	djnz	-_
+	djnz	.next
 	pop	bc
 	pop	de
 	ex	(sp),hl
@@ -72,9 +60,10 @@ debugHexBlock:
 	inc	hl
 	ld	b,(hl)
 	inc	hl
-_:	call	debugHex_DE_
+.next:
+	call	debugHex_DE_
 	inc	de
-	djnz	-_
+	djnz	.next
 	pop	bc
 	pop	de
 	ex	(sp),hl
@@ -83,31 +72,32 @@ debugHexBCU:
 	push	af
 	dec	sp
 	push	bc
-	jr	_
+	jr	debugUpper
 debugHexDEU:
 	push	af
 	dec	sp
 	push	de
-	jr	_
+	jr	debugUpper
 debugHexHLU:
 	push	af
 	dec	sp
 	push	hl
-_:	inc	sp
+debugUpper:
+	inc	sp
 	pop	af
-	jr	_
+	jr	debugDraw
 debugHexB:
 	push	af
 	ld	a,b
-	jr	_
+	jr	debugDraw
 debugHexD:
 	push	af
 	ld	a,d
-	jr	_
+	jr	debugDraw
 debugHexH:
 	push	af
 	ld	a,h
-	jr	_
+	jr	debugDraw
 debugHexUBC:
 	call	debugHexBCU
 debugHexBC:
@@ -115,7 +105,7 @@ debugHexBC:
 debugHexC:
 	push	af
 	ld	a,c
-	jr	_
+	jr	debugDraw
 debugHexUDE:
 	call	debugHexDEU
 debugHexDE:
@@ -123,7 +113,7 @@ debugHexDE:
 debugHexE:
 	push	af
 	ld	a,e
-	jr	_
+	jr	debugDraw
 debugHexUHL:
 	call	debugHexHLU
 debugHexHL:
@@ -131,35 +121,37 @@ debugHexHL:
 debugHexL:
 	push	af
 	ld	a,l
-	jr	_
+	jr	debugDraw
 debugHex_BC_:
 	push	af
 	ld	a,(bc)
-	jr	_
+	jr	debugDraw
 debugHex_DE_:
 	push	af
 	ld	a,(de)
-	jr	_
+	jr	debugDraw
 debugHex_HL_:
 	push	af
 	ld	a,(hl)
-	jr	_
+	jr	debugDraw
 debugHexA:
 	push	af
-_:	push	iy
+debugDraw:
+	push	iy
 	ld	iy,flags
 	push	af
 	rrca
 	rrca
 	rrca
 	rrca
-	call	_
+	call	.draw
 	pop	af
-	call	_
+	call	.draw
 	pop	iy
 	pop	af
 	ret
-_:	or	a,$F0
+.draw:
+	or	a,$F0
 	daa
 	add	a,$A0
 	adc	a,$40
@@ -191,10 +183,18 @@ debugDecUHL:
 	ret
 
 debugCharA:
+	push	de
+	push	bc
+	push	af
+	push	hl
 	push	iy
 	ld	iy,flags
 	call	_PutC
 	pop	iy
+	pop	hl
+	pop	af
+	pop	bc
+	pop	de
 	ret
 
 debugChar:
@@ -212,33 +212,34 @@ debugChar:
 
 debugStr:
 	ex	(sp),hl
+	push	bc
 	push	af
 	push	de
 	push	iy
 	ld	iy,flags
+	push	ix
 	call	_PutS
+	pop	ix
 	pop	iy
 	pop	de
 	pop	af
+	pop	bc
 	ex	(sp),hl
 	ret
 
 debugNewLine:
-	push	iy
-	ld	iy,flags
-	call	_NewLine
-	pop	iy
-	ret
-
-debugHLStr:
+	push	hl
 	push	af
 	push	de
+	push	bc
 	push	iy
+	push	ix
 	ld	iy,flags
-	call	_PutS
+	call	_NewLine
+	pop	ix
 	pop	iy
+	pop	bc
 	pop	de
 	pop	af
+	pop	hl
 	ret
-
-#endif
