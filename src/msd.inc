@@ -1,5 +1,4 @@
 xferCBWDataDefault  := usbbuf2 + 1024
-xferReadDataDefault := usbbuf2 + 2048
 
 initMsd:
 	call	initDevice
@@ -34,6 +33,54 @@ scsiInit:
 	or	a,a
 	sbc	hl,de
 	jp	nz,scsiFail		; ensure sector size is 512 bytes
+	ret
+
+_msd_KeepAlive:
+	ld	hl,scsiTestUnitReady
+	call	scsiDefaultRequest
+	ld	a,50
+	jp	_DelayTenTimesAms
+
+_msd_ReadSector:
+	call	__frameset0
+
+	ld	a,(ix+9)
+	ld	(scsiRead10Lba + 3),a
+	ld	a,(ix+10)
+	ld	(scsiRead10Lba + 2),a
+	ld	a,(ix+11)
+	ld	(scsiRead10Lba + 1),a
+	ld	a,(ix+12)
+	ld	(scsiRead10Lba + 0),a
+
+	ld	de,(ix+6)
+	call	scsiRequestRead
+
+	xor	a,a
+	sbc	hl,hl
+	ld	sp,ix
+	pop	ix
+	ret
+
+_msd_WriteSector:
+	call	__frameset0
+
+	ld	a,(ix+9)
+	ld	(scsiWrite10Lba + 3),a
+	ld	a,(ix+10)
+	ld	(scsiWrite10Lba + 2),a
+	ld	a,(ix+11)
+	ld	(scsiWrite10Lba + 1),a
+	ld	a,(ix+12)
+	ld	(scsiWrite10Lba + 0),a
+
+	ld	de,(ix+6)
+	call	scsiRequestWrite
+
+	xor	a,a
+	sbc	hl,hl
+	ld	sp,ix
+	pop	ix
 	ret
 
 ; scsi format:
@@ -96,54 +143,6 @@ scsiRequest:
 					; should we perform any recovery here?
 	ret
 
-_msd_KeepAlive:
-	ld	hl,scsiTestUnitReady
-	call	scsiDefaultRequest
-	ld	a,50
-	jp	_DelayTenTimesAms
-
-_msd_ReadSector:
-	call	__frameset0
-
-	ld	a,(ix+9)
-	ld	(scsiRead10Lba + 3),a
-	ld	a,(ix+10)
-	ld	(scsiRead10Lba + 2),a
-	ld	a,(ix+11)
-	ld	(scsiRead10Lba + 1),a
-	ld	a,(ix+12)
-	ld	(scsiRead10Lba + 0),a
-
-	ld	de,(ix+6)
-	call	scsiRequestRead
-
-	xor	a,a
-	sbc	hl,hl
-	ld	sp,ix
-	pop	ix
-	ret
-
-_msd_WriteSector:
-	call	__frameset0
-
-	ld	a,(ix+9)
-	ld	(scsiWrite10Lba + 3),a
-	ld	a,(ix+10)
-	ld	(scsiWrite10Lba + 2),a
-	ld	a,(ix+11)
-	ld	(scsiWrite10Lba + 1),a
-	ld	a,(ix+12)
-	ld	(scsiWrite10Lba + 0),a
-
-	ld	de,(ix+6)
-	call	scsiRequestWrite
-
-	xor	a,a
-	sbc	hl,hl
-	ld	sp,ix
-	pop	ix
-	ret
-
 ; Input:
 ;  scsiRead10Lba = logical block address
 ;  de -> buffer
@@ -152,7 +151,10 @@ _msd_WriteSector:
 scsiRequestRead:
 	ld	hl,scsiRead10
 	jp	scsiRequest
-	ret
+
+scsiRequestDefaultRead:
+	ld	de,xferCBWDataDefault
+	jr	scsiRequestRead
 
 scsiRequestWrite:
 	ld	hl,scsiWrite10
@@ -217,7 +219,7 @@ msdCswAck:
 
 scsiFail:
 	call	debugStr
-	db	'Transmission Error.',0
+	db	'transmission error.',0
 	call	debugNewLine
 	jp	debugAbort
 
@@ -230,7 +232,8 @@ scsiFail:
 getDescriptor:
 	push	de
 	push	bc
-	ld	de,(config_end)
+	ld	de,0
+msd_config_end := $ - 3
 	ld	bc,0
 findDescriptor:
 	or	a,a
@@ -276,7 +279,7 @@ findScsiEndpointsLoop:
 	jr	nz,endpointSkip
 	ld	(ep_in),a
 ;	call	debugStr
-;	db	'In: ',0
+;	db	'in: ',0
 ;	call	debugHexA
 ;	call	debugNewLine
 	set	0,c
@@ -286,7 +289,7 @@ endpointOut:
 	jr	nz,endpointSkip
 	ld	(ep_out),a
 ;	call	debugStr
-;	db	'Out: ',0
+;	db	'out: ',0
 ;	call	debugHexA
 ;	call	debugNewLine
 	set	1,c
@@ -298,7 +301,7 @@ endpointSkip:
 	cp	a,2
 	jr	z,endpointFail
 ;	call	debugStr
-;	db	'Valid Endpoints.',0
+;	db	'valid endpoints',0
 ;	call	debugNewLine
 	scf
 	ret
@@ -314,7 +317,8 @@ endpointFail:
 ;  nc = not found
 ;   c = found
 findFirstMsdInterface:
-	ld	hl,(config_start)
+	ld	hl,0
+msd_config_start := $ - 3
 findMsdInterface:
 	ld	a,4				; interface descriptor type
 	call	getDescriptor
@@ -326,7 +330,7 @@ findMsdInterface:
 	cp	a,8				; bInterfaceClass == 8
 	jr	nz,findMsdInterface
 ;	call	debugStr
-;	db	'MSD Interface: ',0
+;	db	'interface: ',0
 	ld	a,(iy+2)
 	ld	(packetMSDReset+4),a		; store the interface number
 	ld	(packetMSDMaxLUN+4),a		; store the interface number

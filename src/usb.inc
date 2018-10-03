@@ -28,70 +28,19 @@ initDevice:
 	call    setup
 	pop	bc
 	ld      hl,usbbuf
-	ld	(config_start),hl
+	ld	(msd_config_start),hl
 	add	hl,bc
-	ld	(config_end),hl
+	ld	(msd_config_end),hl		; used by the msd driver
 	ld	iy,(device)			; select config
 	ld      ix,usbbuf
 	call	devSelectConfig
 	ret
 
 setup:
-	ld	iy,(device)
+	ld	iy,0
+device := $ - 3
 	call	controlDefaultTransfer
 	jp	qhWait
-
-; Input:
-;  a = index
-debugStrDesc:
-;if ~defined NDEBUG
-	ld	hl, debugNewLine
-	push	hl
-;end if
-	or      a,a
-	jr      nz,.none
-	call	debugStr
-	db	'<NONE>',0
-	ret
-.none:
-	ld      (reqGetStrDesc+2),a
-	call	debugChar
-	db	34
-	call	.name
-	call	debugChar
-	db	34
-	ret
-.name:
-	ld      hl,usbbuf+18
-	ld      de,reqGetStrDesc
-	push    hl
-	call    setup
-	pop     hl
-	ld      b,(hl)
-	srl     b
-.loop:
-	dec     b
-	ret     z
-	inc     hl
-	inc     hl
-	ld      de,(hl)
-	ld      a,d
-	or      a,a
-	jr      nz,.first
-	ld      a,e
-	cp      a,$20
-	jr      c,.first
-	cp      a,$7f
-	jr      nc,.first
-	cp      a,$5b
-	jr      nz,.draw
-	ld      a,$c1
-	jr      .draw
-.first:
-	ld      a,$d0
-.draw:
-	call	debugCharA
-	jr      .loop
 
 reqDevDesc18:
 	db     $80,6,0,1,0,0,18,0
@@ -101,11 +50,4 @@ reqGetStrDesc:
 	db     $80,6,0,3,0,0,0,1
 reqClearHalt:
 	db	2,1,0,0,0,0,0,0
-
-device:
-	db	0,0,0
-config_start:
-	db	0,0,0
-config_end:
-	db	0,0,0
 

@@ -5,6 +5,7 @@
 	.def	_msd_WriteSector
 	.def	_usb_Cleanup
 	.def	_msd_KeepAlive
+	.def	_fat_find
 
 saveSScreen		:= $0D0EA1F ; 21945 bytes
 
@@ -298,8 +299,9 @@ _usb_Cleanup:
 	pop	ix
 	ret
 
-INCLUDE 'debug.inc'
-INCLUDE 'host.inc'
-INCLUDE 'usb.inc'
-INCLUDE 'msd.inc'
+include 'debug.inc'
+include 'host.inc'
+include 'usb.inc'
+include 'msd.inc'
+include 'fat.inc'
 
