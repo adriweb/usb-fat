@@ -124,6 +124,28 @@ scsiWrite10Ctrl:
 	db	$00
 
 ; Input:
+;  scsiRead10Lba = logical block address
+;  de -> buffer
+; Output:
+;  buffer loaded
+scsiRequestDefaultRead:
+	ld	de,xferCBWDataDefault
+scsiRequestRead:
+	ld	hl,scsiRead10
+	jr	scsiRequest
+
+; Input:
+;  scsiWriteiRead10Lba = logical block address
+;  de -> buffer
+; Output:
+;  buffer loaded
+scsiRequestDefaultWrite:
+	ld	de,xferCBWDataDefault
+scsiRequestWrite:
+	ld	hl,scsiWrite10
+	jr	scsiRequest
+
+; Input:
 ;  hl = ptr to xfer
 ;  de = ptr to storage
 ; Output;
@@ -139,26 +161,12 @@ scsiRequest:
 	pop	ix
 	ret	z
 	or	a,a			; csw packet status
-	jp	z,scsiFail		; fail if anything other than csw status
-					; should we perform any recovery here?
-	ret
-
-; Input:
-;  scsiRead10Lba = logical block address
-;  de -> buffer
-; Output:
-;  buffer loaded
-scsiRequestRead:
-	ld	hl,scsiRead10
-	jp	scsiRequest
-
-scsiRequestDefaultRead:
-	ld	de,xferCBWDataDefault
-	jr	scsiRequestRead
-
-scsiRequestWrite:
-	ld	hl,scsiWrite10
-	jp	scsiRequest
+	ret	nz			; fail if anything other than csw status --  should we perform any recovery here?
+scsiFail:
+	call	debugStr
+	db	'transmission error.',0
+	call	debugNewLine
+	jp	debugAbort
 
 scsiReq:
 	ld	(xferCBWData),de
@@ -216,12 +224,6 @@ msdCswAck:
 	ld	a,(packetCSW+12)
 	or	a,a				; check for good status of transfer
 	ret
-
-scsiFail:
-	call	debugStr
-	db	'transmission error.',0
-	call	debugNewLine
-	jp	debugAbort
 
 ; Input:
 ;  hl = ptr in config

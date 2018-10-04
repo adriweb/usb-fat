@@ -15,47 +15,44 @@ unsigned char key_Any(void);
 void os_line(const char *str);
 void wait_user(void);
 
+unsigned char sector[512];
+
+unsigned char msd_ReadSector(uint8_t *data, uint32_t blocknum);
+unsigned char msd_WriteSector(uint8_t *data, uint32_t blocknum);
+
+typedef struct {
+	uint32_t lba;
+	uint32_t size;
+} fat_partition_t;
+
+unsigned char fat_find(fat_partition_t *result, unsigned char max);
+
 void main(void) {
+    fat_partition_t fat_partition[10];
     char buffer[100];
     const char *file = "apples.txt";
+    int err;
+    uint8_t num;
 
     os_ClrHome();
 
     os_line("insert msd...");
 
-    if (msd_Init()) {
-        TFFile *fp;
-        int rc;
-
-        os_line("mounted msd");
-
-        if (tf_init() == 0) {
-
-            os_line("detected FAT32");
-            os_PutStrLine("opening file \"");
-            os_PutStrLine(file);
-            os_PutStrLine("\"");
-            os_NewLine();
-            os_NewLine();
-
-            if ((fp = tf_fopen(file, "r")) != NULL) {
-		unsigned int size = fp->size;
-		sprintf(buffer, "file size: %u bytes", size);
-		os_line(buffer);
-                tf_fread((uint8_t*)&buffer, size - 1, fp);
-                buffer[size - 1] = '\0';
-                os_line("file contents:");
-                os_line(buffer);
-                tf_fclose(fp);
-            } else {
-                os_line("did not open file.");
-            }
-        }
-
-        usb_Cleanup();
+    /* initialize mass storage device */
+    if (!msd_Init()) {
+	return;
     }
 
-    /* flush */
+    /* find avaliable fat32 filesystems */
+    os_line("getting fat32 systems");
+    num = fat_find(fat_partition, sizeof(fat_partition)/sizeof(fat_partition_t));
+
+    sprintf(buffer, "num: %u", num);
+    os_line(buffer);
+
+    usb_Cleanup();
+
+    /* wait for key */
     while(!os_GetCSC());
 }
 

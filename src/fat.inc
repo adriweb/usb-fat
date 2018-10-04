@@ -1,33 +1,40 @@
 _fat_find:
-	pop	de
-	pop	hl
-	pop	af
-	push	af
-	push	hl
-	push	de
+	ld	iy, 0
+	add	iy, sp
+	ld	hl, (iy + 3)
+	ld	a, (iy + 6)
 msd_mbr_parse:
-	ld	(fat32_ptrs),hl
-	ld	(fat32_max),a
-	xor	a,a
-	ld	(fat32_num),a
-	sbc	hl,hl
-	ld	(scsiRead10Lba),hl
-	ld	(scsiRead10Lba + 3),a
+	ld	(fat32_ptrs), hl
+	ld	(fat32_max), a
+	xor	a, a
+	ld	(fat32_num), a
+	sbc	hl, hl
+	ld	(scsiRead10Lba), hl
+	ld	(scsiRead10Lba + 3), a
 	call	find_fat32
-	ld	a,0
+	call	debugStr
+	db	'returning...',0
+	call	debugNewLine
+	ld	a, 0
 fat32_num := $ - 1
 	ret
 
 find_fat32:
+	call	debugStr
+	db	'entered find',0
+	call	debugNewLine
 	call	scsiRequestDefaultRead		; read sector
 	call	check_sector_magic
 	ret	nz
-	ld	hl,-48
+	call	debugStr
+	db	'passed magic',0
+	call	debugNewLine
+	ld	hl,-64
 	add	hl,sp
 	ld	sp,hl
 	ex	de,hl
 	ld	hl,xferCBWDataDefault + 446 + 4
-	ld	bc,48
+	ld	bc,64
 	ldir					; copy the current partition table to the stack
 	xor	a,a
 	sbc	hl,hl
@@ -37,6 +44,7 @@ find_fat32:
 	push	af
 	push	hl
 	ld	a,(hl)
+	call	debugHexA
 	cp	a,$0c				; fat32 partition?
 	call	z,fat32_found
 	cp	a,$0f				; extended partition?
@@ -44,16 +52,31 @@ find_fat32:
 	pop	hl
 	ld	bc,16
 	add	hl,bc
+
+	push	hl
+	call	debugStr
+	db	'next loop',0
+	call	debugNewLine
+	ld	a,100
+	call	_DelayTenTimesAms
+	pop	hl
+
 	pop	af
 	dec	a
 	jr	nz,.loop
-	ld	hl,48
+	call	debugStr
+	db	'attempting to finish!',0
+	call	debugNewLine
+	ld	hl,64
 	add	hl,sp
 	ld	sp,hl
 	ret
 
 fat32_found:
 	push	af
+;	call	debugStr
+;	db	'found fat',0
+;	call	debugNewLine
 	ld	a,(fat32_num)
 	cp	a,0
 fat32_max := $ - 1
@@ -61,7 +84,7 @@ fat32_max := $ - 1
 	ld	bc,8				; hl -> end of lba
 	add	hl,bc
 	ld	de,0
-fat32_ptrs := $ - 1
+fat32_ptrs := $ - 3
 	call	reverse_copy
 	ld	bc,8
 	add	hl,bc				; hl -> end of size
@@ -75,9 +98,14 @@ fat32_ptrs := $ - 1
 
 ebr_found:
 	push	af
+	call	debugStr
+	db	'found ebr',0
+	call	debugNewLine
+	ld	de,scsiRead10Lba
 	ld	bc,4
 	add	hl,bc
-	ld	de,scsiRead10Lba
+	call	debugHexBlockHL
+	db	8
 	ldi
 	ldi
 	ldi
@@ -99,10 +127,12 @@ reverse_copy:
 check_sector_magic:
 	ld	hl,xferCBWDataDefault + 510	; offset = signature
 	ld	a,(hl)
+	call	debugHexA
 	cp	a,$55
 	ret	nz
 	inc	hl
 	ld	a,(hl)
+	call	debugHexA
 	cp	a,$aa
 	ret
 
