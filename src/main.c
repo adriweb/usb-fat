@@ -25,10 +25,24 @@ typedef struct {
 	uint32_t size;
 } fat_partition_t;
 
-unsigned char fat_find(fat_partition_t *result, unsigned char max);
+unsigned char fat_Find(fat_partition_t *result, unsigned char max);
+void fat_Select(fat_partition_t *partitions, unsigned char index);
+
+uint32_t chstolba(uint32_t c)
+{
+// LBA = (C × HPC + H) × SPT + (S - 1)
+// C, H and S are the cylinder number, the head number, and the sector number
+// LBA is the logical block address
+// HPC is the maximum number of heads per cylinder (reported by disk drive, typically 16 for 28-bit LBA)
+// SPT is the maximum number of sectors per track (reported by disk drive, typically 63 for 28-bit LBA)
+
+	return c;
+}
+
+#define MAX_PARTITIONS 10
 
 void main(void) {
-    fat_partition_t fat_partition[10];
+    fat_partition_t fat_partitions[MAX_PARTITIONS];
     char buffer[100];
     const char *file = "apples.txt";
     int err;
@@ -44,8 +58,8 @@ void main(void) {
     }
 
     /* find avaliable fat32 filesystems */
-    os_line("getting fat32 systems");
-    num = fat_find(fat_partition, sizeof(fat_partition)/sizeof(fat_partition_t));
+    num = fat_Find(fat_partitions, MAX_PARTITIONS);
+    fat_Select(fat_partitions, 0);
 
     sprintf(buffer, "num: %u", num);
     os_line(buffer);

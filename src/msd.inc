@@ -385,8 +385,7 @@ curr_lun:
 	db	0
 
 lb_addr:
-	db	0
-	db	0,0,0
+	db	0,0,0,0
 	db	0	; technically part of block size, but meh
 block_size:
 	db	0,0,0
@@ -397,24 +396,24 @@ packetMSDMaxLUN:
 	db	$A1,$FE,$00,$00,$00,$00,$01,$00
 
 packetCSW:
-	db	$00,$00,$00,$00 ; signature
-	db	$00,$00,$00,$00 ; tag
-	db	$00,$00,$00,$00 ; residue
-	db	$00			 ; status
+	db	$00,$00,$00,$00	; signature
+	db	$00,$00,$00,$00	; tag
+	db	$00,$00,$00,$00	; residue
+	db	$00		; status
 packetCSWLen := $ - packetCSW
 
 packetCBW:
 	db	$55,$53,$42,$43	; signature
-	db	$00,$00,$00,$00 ; tag
-	db	$00,$00,$00,$00 ; length
-	db	$00			 ; flags
+	db	$00,$00,$00,$00	; tag
+	db	$00,$00,$00,$00	; length
+	db	$00		; flags
 	db	$00		; lun
 packetCBWCBD:
 	db	$00		; command block length
 	db	$00		; command block opcode
 	db	$00,$00,$00	; command block
-	db	$00,$00,$00,$00 ; command block
-	db	$00,$00,$00,$00 ; command block
-	db	$00,$00,$00,$00 ; command block
+	db	$00,$00,$00,$00	; command block
+	db	$00,$00,$00,$00	; command block
+	db	$00,$00,$00,$00	; command block
 packetCBWLen := $ - packetCBW
 

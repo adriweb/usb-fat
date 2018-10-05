@@ -5,7 +5,8 @@
 	.def	_msd_WriteSector
 	.def	_usb_Cleanup
 	.def	_msd_KeepAlive
-	.def	_fat_find
+	.def	_fat_Find
+	.def	_fat_Select
 
 saveSScreen		:= $0D0EA1F ; 21945 bytes
 
