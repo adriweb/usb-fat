@@ -33,9 +33,10 @@ _fat_Select:
 	ld	de,fat_partition_lba
 	ld	bc,4
 	ldir
-;	ld	hl,fat_partition_lba
+	ld	hl,fat_partition_lba
 ;	call	debugHexBlockHL
 ;	db	4
+;	call    debugNewLine
 	ret
 
 _fat_Find:

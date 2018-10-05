@@ -139,7 +139,7 @@ int tf_init() {
     if (!(bpb->BS_JumpBoot[0] == 0xEB && bpb->BS_JumpBoot[2] == 0x90) && !(bpb->BS_JumpBoot[0] == 0xE9))
     {
         dbg_printf("  tf_init FAILED: stupid jmp instruction isn't exactly right...");
-        return 3;
+        return TF_ERR_BAD_FS_TYPE;
     }
 
     /* Only specific bytes per sector values are allowed
@@ -147,20 +147,20 @@ int tf_init() {
     if (bpb->BytesPerSector != 512)
     {
         dbg_printf("  tf_init() FAILED: Bad Filesystem Type (!=512 bytes/sector)\r\n");
-        return 4;
+        return TF_ERR_BAD_FS_TYPE;
     }
 
     if (bpb->ReservedSectorCount == 0)
     {
         dbg_printf("  tf_init() FAILED: ReservedSectorCount == 0!!\r\n");
-        return 5;
+        return TF_ERR_BAD_FS_TYPE;
     }
 
     /* Valid media types */
     if ((bpb->Media != 0xF0) && ((bpb->Media < 0xF8) || (bpb->Media > 0xFF)))
     {
         dbg_printf("  tf_init() FAILED: Invalid Media Type!  (0xf0, or 0xf8 <= type <= 0xff)\r\n");
-        return 6;
+        return TF_ERR_BAD_FS_TYPE;
     }
 
     // See the FAT32 SPEC for how this is all computed
@@ -177,7 +177,7 @@ int tf_init() {
     if(cluster_count < 65525)
     {
         dbg_printf("  tf_init() FAILED: cluster_count < 65525\r\n");
-        return 7;
+        return TF_ERR_BAD_FS_TYPE;
     }
     else tf_info.type = TF_TYPE_FAT32;
 
@@ -192,7 +192,7 @@ int tf_init() {
 
     // Like recording the root directory size!
     // TODO, THis probably isn't necessary.  Remove later
-    fp = tf_fopen((const uint8_t*)"/", (const uint8_t*)"r");
+    fp = tf_fopen("/", "r");
     do {
         temp += sizeof(FatFileEntry);
         tf_fread((uint8_t*)&e, sizeof(FatFileEntry), fp);
@@ -730,7 +730,7 @@ int tf_mkdir(uint8_t *filename, int mkParents) {
     
     memset(&blank, 0, sizeof(FatFileEntry));
     
-    fp = tf_fopen(filename, (const uint8_t*)"r");
+    fp = tf_fopen(filename, "r");
     if (fp)  // if not NULL, the filename already exists.
     {
         tf_fclose(fp);

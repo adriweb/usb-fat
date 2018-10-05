@@ -9,7 +9,7 @@
 
 #define MAX_PARTITIONS 10
 
-const char *file = "apples.txt";
+const char *file = "FILETEST.TXT";
 
 void key_Scan(void);
 unsigned char key_Any(void);
@@ -27,12 +27,11 @@ void os_line(const char *str) {
 }
 
 void open_fat_file(void) {
-    fat_partition_t fat_partitions[MAX_PARTITIONS];
-    unsigned int size;
-    char buffer[256];
-    int err;
-    uint8_t num;
     TFFile *fp;
+    unsigned int size;
+    uint8_t num;
+    fat_partition_t fat_partitions[MAX_PARTITIONS];
+    char buffer[256];
 
     os_ClrHome();
 
