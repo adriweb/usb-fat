@@ -1,3 +1,27 @@
+_fat_ReadSector:
+	ld	iy, 0
+	add	iy, sp
+	ld	de,(iy + 3)
+	push	de
+	ld	hl,(iy + 6)
+	ld	e,(iy + 9)
+	ld	bc,scsiRead10Lba
+	call	fat_add_fat_partition_lba
+	pop	de
+	jp	scsiRequestRead
+
+_fat_WriteSector:
+	ld	iy, 0
+	add	iy, sp
+	ld	de,(iy + 3)
+	push	de
+	ld	hl,(iy + 6)
+	ld	e,(iy + 9)
+	ld	bc,scsiWrite10Lba
+	call	fat_add_fat_partition_lba
+	pop	de
+	jp	scsiRequestWrite
+
 _fat_Select:
 	ld	iy, 0
 	add	iy, sp
@@ -6,16 +30,13 @@ _fat_Select:
 	mlt	de
 	ld	hl,(iy + 3)
 	add	hl,de
-	ld	de,partition_lba
+	ld	de,fat_partition_lba
 	ld	bc,4
 	ldir
-;	ld	hl,partition_lba
+;	ld	hl,fat_partition_lba
 ;	call	debugHexBlockHL
 ;	db	4
 	ret
-
-partition_lba:
-	db	0,0,0,0
 
 _fat_Find:
 	ld	iy, 0
@@ -40,6 +61,31 @@ msd_mbr_parse:
 	call	find_fat32
 	ld	a, 0
 fat32_num := $ - 1
+	ret
+
+fat_add_fat_partition_lba:
+	push	bc
+	ld	bc,(fat_partition_lba)
+	ld	a,(fat_partition_lba + 3)
+	call	__ladd
+	ld	a,e			; big endian
+	pop	de
+	ld	(de),a
+	dec	sp
+	push	hl
+	inc	sp
+	pop	af			; hlu
+	inc	de
+	ld	(de),a
+	ld	a,h
+	inc	de
+	ld	(de),a
+	ld	a,l
+	inc	de
+	ld	(de),a
+;	ld	hl,scsiRead10Lba
+;	call	debugHexBlockHL
+;	db	4
 	ret
 
 find_fat32:
@@ -170,4 +216,7 @@ check_sector_magic:
 	ld	a,(hl)
 	cp	a,$aa
 	ret
+
+fat_partition_lba:
+	db	0,0,0,0
 

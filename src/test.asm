@@ -7,6 +7,8 @@
 	.def	_msd_KeepAlive
 	.def	_fat_Find
 	.def	_fat_Select
+	.def	_fat_ReadSector
+	.def	_fat_WriteSector
 
 saveSScreen		:= $0D0EA1F ; 21945 bytes
 
@@ -14,6 +16,7 @@ usbbuf			:= saveSScreen
 usbbuf2			:= saveSScreen + 2048
 
 __frameset0		:= $000130
+__ladd			:= $00019C
 _PutC			:= $0207B8
 _PutS			:= $0207C0
 _DispHL_s		:= $0207BC

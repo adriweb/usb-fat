@@ -7,8 +7,8 @@
 
 #include <tice.h>
 
-unsigned char msd_ReadSector(uint8_t *data, uint32_t blocknum);
-unsigned char msd_WriteSector(uint8_t *data, uint32_t blocknum);
+void fat_ReadSector(uint8_t *data, uint32_t blocknum);
+void fat_WriteSector(uint8_t *data, uint32_t blocknum);
 
 #define PRINTF_INT8(b) \
     ((((uint32_t)(b)) & 0x80u) ? '1' : '0'), \
@@ -31,7 +31,8 @@ int read_sector(uint8_t *data, uint32_t blocknum) {
         (uint8_t)(blocknum >> 0));
     os_SetCursorPos(0,0);
     os_PutStrLine(debug_buffer);*/
-    return msd_ReadSector(data, blocknum);
+    fat_ReadSector(data, blocknum);
+    return 0;
 }
 
 int write_sector(uint8_t *data, uint32_t blocknum) {
@@ -42,7 +43,8 @@ int write_sector(uint8_t *data, uint32_t blocknum) {
         (uint8_t)(blocknum >> 0));
     os_PutStrLine(debug_buffer);
     os_NewLine();*/
-    return msd_WriteSector(data, blocknum);
+    //fat_WriteSector(data, blocknum);
+    return 0;
 }
 
 
@@ -137,7 +139,7 @@ int tf_init() {
     if (!(bpb->BS_JumpBoot[0] == 0xEB && bpb->BS_JumpBoot[2] == 0x90) && !(bpb->BS_JumpBoot[0] == 0xE9))
     {
         dbg_printf("  tf_init FAILED: stupid jmp instruction isn't exactly right...");
-        return TF_ERR_BAD_FS_TYPE;
+        return 3;
     }
 
     /* Only specific bytes per sector values are allowed
@@ -145,20 +147,20 @@ int tf_init() {
     if (bpb->BytesPerSector != 512)
     {
         dbg_printf("  tf_init() FAILED: Bad Filesystem Type (!=512 bytes/sector)\r\n");
-        return TF_ERR_BAD_FS_TYPE;
+        return 4;
     }
 
     if (bpb->ReservedSectorCount == 0)
     {
         dbg_printf("  tf_init() FAILED: ReservedSectorCount == 0!!\r\n");
-        return TF_ERR_BAD_FS_TYPE;
+        return 5;
     }
 
     /* Valid media types */
     if ((bpb->Media != 0xF0) && ((bpb->Media < 0xF8) || (bpb->Media > 0xFF)))
     {
         dbg_printf("  tf_init() FAILED: Invalid Media Type!  (0xf0, or 0xf8 <= type <= 0xff)\r\n");
-        return TF_ERR_BAD_FS_TYPE;
+        return 6;
     }
 
     // See the FAT32 SPEC for how this is all computed
@@ -175,7 +177,7 @@ int tf_init() {
     if(cluster_count < 65525)
     {
         dbg_printf("  tf_init() FAILED: cluster_count < 65525\r\n");
-        return TF_ERR_BAD_FS_TYPE;
+        return 7;
     }
     else tf_info.type = TF_TYPE_FAT32;
 

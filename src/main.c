@@ -1,74 +1,18 @@
+#include "fat.h"
+#include "thinfat32.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <tice.h>
 #include <keypadc.h>
-#include "thinfat32.h"
-
-unsigned char msd_Init(void);
-void usb_Cleanup(void);
-void msd_KeepAlive(void);
-
-void key_Scan(void);
-unsigned char key_Any(void);
-
-void os_line(const char *str);
-void wait_user(void);
-
-unsigned char sector[512];
-
-unsigned char msd_ReadSector(uint8_t *data, uint32_t blocknum);
-unsigned char msd_WriteSector(uint8_t *data, uint32_t blocknum);
-
-typedef struct {
-	uint32_t lba;
-	uint32_t size;
-} fat_partition_t;
-
-unsigned char fat_Find(fat_partition_t *result, unsigned char max);
-void fat_Select(fat_partition_t *partitions, unsigned char index);
-
-uint32_t chstolba(uint32_t c)
-{
-// LBA = (C × HPC + H) × SPT + (S - 1)
-// C, H and S are the cylinder number, the head number, and the sector number
-// LBA is the logical block address
-// HPC is the maximum number of heads per cylinder (reported by disk drive, typically 16 for 28-bit LBA)
-// SPT is the maximum number of sectors per track (reported by disk drive, typically 63 for 28-bit LBA)
-
-	return c;
-}
 
 #define MAX_PARTITIONS 10
 
-void main(void) {
-    fat_partition_t fat_partitions[MAX_PARTITIONS];
-    char buffer[100];
-    const char *file = "apples.txt";
-    int err;
-    uint8_t num;
+const char *file = "apples.txt";
 
-    os_ClrHome();
-
-    os_line("insert msd...");
-
-    /* initialize mass storage device */
-    if (!msd_Init()) {
-	return;
-    }
-
-    /* find avaliable fat32 filesystems */
-    num = fat_Find(fat_partitions, MAX_PARTITIONS);
-    fat_Select(fat_partitions, 0);
-
-    sprintf(buffer, "num: %u", num);
-    os_line(buffer);
-
-    usb_Cleanup();
-
-    /* wait for key */
-    while(!os_GetCSC());
-}
+void key_Scan(void);
+unsigned char key_Any(void);
 
 /* cannot use getcsc in usb */
 void wait_user(void) {
@@ -78,6 +22,75 @@ void wait_user(void) {
 }
 
 void os_line(const char *str) {
-    os_PutStrLine(str);
+    os_PutStrFull(str);
     os_NewLine();
 }
+
+void open_fat_file(void) {
+    fat_partition_t fat_partitions[MAX_PARTITIONS];
+    unsigned int size;
+    char buffer[256];
+    int err;
+    uint8_t num;
+    TFFile *fp;
+
+    os_ClrHome();
+
+    os_line("insert msd...");
+
+    /* initialize mass storage device */
+    if (!msd_Init()) {
+        os_line("msd init failed.");
+        return;
+    }
+
+    /* find avaliable fat32 filesystems */
+    num = fat_Find(fat_partitions, MAX_PARTITIONS);
+    if (num == 0) {
+        os_line("no fat partitions.");
+        return;
+    }
+
+    /* log number of partitions */
+    sprintf(buffer, "total fat partitions: %u", num);
+    os_line(buffer);
+
+    /* just use the first partition */
+    fat_Select(fat_partitions, 0);
+
+    if (tf_init() != 0) {
+        os_line("invalid fat partition.");
+        return;
+    }
+
+    os_line("using fat partition 1.");
+
+    if ((fp = tf_fopen(file, "r")) == NULL) {
+        os_line("can't open file.");
+        return;
+    }
+
+    size = fp->size;
+
+    sprintf(buffer, "file size: %u bytes", size);
+    os_line(buffer);
+
+    if (size > sizeof buffer) {
+        size = sizeof buffer;
+    }
+
+    tf_fread((uint8_t*)&buffer, size - 1, fp);
+    buffer[size - 1] = '\0';
+    os_line("file contents:");
+    os_line(buffer);
+    tf_fclose(fp);
+}
+
+void main(void) {
+    open_fat_file();
+    usb_Cleanup();
+
+    /* wait for key */
+    while(!os_GetCSC());
+}
+
