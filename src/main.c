@@ -1,6 +1,6 @@
 #include "fat.h"
-#include "thinfat32.h"
 
+#include <stdio.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -9,7 +9,13 @@
 
 #define MAX_PARTITIONS 10
 
-const char *file = "FILETEST.TXT";
+void send_char(char n)
+{
+    char str[2];
+    str[0] = n;
+    str[1] = 0;
+    os_PutStrFull(str);
+}
 
 void key_Scan(void);
 unsigned char key_Any(void);
@@ -27,7 +33,6 @@ void os_line(const char *str) {
 }
 
 void open_fat_file(void) {
-    TFFile *fp;
     unsigned int size;
     uint8_t num;
     fat_partition_t fat_partitions[MAX_PARTITIONS];
@@ -57,32 +62,17 @@ void open_fat_file(void) {
     /* just use the first partition */
     fat_Select(fat_partitions, 0);
 
-    if (tf_init() != 0) {
+    os_line("using fat partition 1.");
+
+    if (fat_Init() != 0) {
         os_line("invalid fat partition.");
         return;
     }
 
-    os_line("using fat partition 1.");
+    cat("FILETEST.TXT");
 
-    if ((fp = tf_fopen(file, "r")) == NULL) {
-        os_line("can't open file.");
-        return;
-    }
-
-    size = fp->size;
-
-    sprintf(buffer, "file size: %u bytes", size);
-    os_line(buffer);
-
-    if (size > sizeof buffer) {
-        size = sizeof buffer;
-    }
-
-    tf_fread((uint8_t*)&buffer, size - 1, fp);
-    buffer[size - 1] = '\0';
-    os_line("file contents:");
-    os_line(buffer);
-    tf_fclose(fp);
+    /* attempt to delete it */
+    del("FILETEST.TXT");
 }
 
 void main(void) {

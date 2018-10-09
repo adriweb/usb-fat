@@ -1,39 +1,47 @@
 _fat_ReadSector:
 	ld	iy, 0
 	add	iy, sp
-	ld	de,(iy + 3)
+	ld	de, (iy + 3)
 	push	de
-	ld	hl,(iy + 6)
-	ld	e,(iy + 9)
-	ld	bc,scsiRead10Lba
+	ld	hl, (iy + 6)
+	ld	e, (iy + 9)
+	ld	bc, scsiRead10Lba
 	call	fat_add_fat_partition_lba
 	pop	de
-	jp	scsiRequestRead
+	call	scsiRequestRead
+	xor	a, a
+	ret
 
 _fat_WriteSector:
 	ld	iy, 0
 	add	iy, sp
 	ld	de,(iy + 3)
 	push	de
-	ld	hl,(iy + 6)
-	ld	e,(iy + 9)
-	ld	bc,scsiWrite10Lba
+	ld	hl, (iy + 6)
+	ld	e, (iy + 9)
+	ld	bc, scsiWrite10Lba
 	call	fat_add_fat_partition_lba
+	ld	hl, fat_partition_lba
+	call	debugHexBlockHL
+	db	4
+	call    debugNewLine
 	pop	de
-	jp	scsiRequestWrite
+	;call	scsiRequestWrite
+	xor	a, a
+	ret
 
 _fat_Select:
 	ld	iy, 0
 	add	iy, sp
-	ld	e,(iy + 6)
-	ld	d,8
+	ld	e, (iy + 6)
+	ld	d, 8
 	mlt	de
-	ld	hl,(iy + 3)
-	add	hl,de
-	ld	de,fat_partition_lba
-	ld	bc,4
+	ld	hl, (iy + 3)
+	add	hl, de
+	ld	de, fat_partition_lba
+	ld	bc, 4
 	ldir
-	ld	hl,fat_partition_lba
+;	ld	hl, fat_partition_lba
 ;	call	debugHexBlockHL
 ;	db	4
 ;	call    debugNewLine
@@ -53,12 +61,12 @@ msd_mbr_parse:
 	ld	(scsiRead10Lba), hl
 	ld	(scsiRead10Lba + 3), a
 	call	scsiRequestDefaultRead		; read sector
-	ld	hl,(xferCBWDataDefault)
-	ld	de,($90 shl 16) or ($58 shl 8) or ($eb shl 0)
-	or	a,a
-	sbc	hl,de
-   	add	hl,de				; check if boot sector
-	jr	z,fat32_only			; this should only happen on the first one
+	ld	hl, (xferCBWDataDefault)
+	ld	de, ($90 shl 16) or ($58 shl 8) or ($eb shl 0)
+	or	a, a
+	sbc	hl, de
+   	add	hl, de				; check if boot sector
+	jr	z, fat32_only			; this should only happen on the first one
 	call	find_fat32
 	ld	a, 0
 fat32_num := $ - 1
@@ -66,25 +74,25 @@ fat32_num := $ - 1
 
 fat_add_fat_partition_lba:
 	push	bc
-	ld	bc,(fat_partition_lba)
-	ld	a,(fat_partition_lba + 3)
+	ld	bc, (fat_partition_lba)
+	ld	a, (fat_partition_lba + 3)
 	call	__ladd
-	ld	a,e			; big endian
+	ld	a, e			; big endian
 	pop	de
-	ld	(de),a
+	ld	(de), a
 	dec	sp
 	push	hl
 	inc	sp
 	pop	af			; hlu
 	inc	de
-	ld	(de),a
+	ld	(de), a
 	ld	a,h
 	inc	de
-	ld	(de),a
+	ld	(de), a
 	ld	a,l
 	inc	de
-	ld	(de),a
-;	ld	hl,scsiRead10Lba
+	ld	(de), a
+;	ld	hl, scsiRead10Lba
 ;	call	debugHexBlockHL
 ;	db	4
 	ret
@@ -93,62 +101,64 @@ find_fat32:
 	call	scsiRequestDefaultRead		; read sector
 	call	check_sector_magic
 	ret	nz
-	ld	hl,-64
-	add	hl,sp
-	ld	sp,hl
-	ex	de,hl
-	ld	hl,xferCBWDataDefault + 446 + 4
-	ld	bc,64
+	ld	hl, -64
+	add	hl, sp
+	ld	sp, hl
+	ex	de, hl
+	ld	hl, xferCBWDataDefault + 446 + 4
+	ld	bc, 64
 	ldir					; copy the current partition table to the stack
-	xor	a,a
-	sbc	hl,hl
-	add	hl,sp
-	ld	a,4
+	xor	a, a
+	sbc	hl, hl
+	add	hl, sp
+	ld	a, 4
 .loop:
 	push	af
 	push	hl
-	ld	a,(hl)
+	ld	a, (hl)
 ;	call	debugHexA
-	cp	a,$0c				; fat32 partition?
-	call	z,fat32_found
-	cp	a,$0f				; extended partition?
-	call	z,ebr_found
+	cp	a, $0b				; fat32 partition?
+	call	z, fat32_found
+	cp	a, $0c				; fat32 partition?
+	call	z, fat32_found
+	cp	a, $0f				; extended partition?
+	call	z, ebr_found
 	cp	a,$05				; extended partition? (chs)
-	call	z,ebr_found
+	call	z, ebr_found
 	pop	hl
-	ld	bc,16
-	add	hl,bc
+	ld	bc, 16
+	add	hl, bc
 
 ;	push	hl
 ;	call	debugStr
-;	db	'next loop',0
+;	db	'next loop', 0
 ;	call	debugNewLine
-;	ld	a,200
+;	ld	a, 200
 ;	call	_DelayTenTimesAms
 ;	pop	hl
 
 	pop	af
 	dec	a
-	jr	nz,.loop
+	jr	nz, .loop
 ;	call	debugStr
-;	db	'exited loop.',0
+;	db	'exited loop.', 0
 ;	call	debugNewLine
-	ld	hl,64
-	add	hl,sp
-	ld	sp,hl
+	ld	hl, 64
+	add	hl, sp
+	ld	sp, hl
 	ret
 
 fat32_only:
 	call	check_sector_magic
-	ld	a,0
+	ld	a, 0
 	ret	nz
 	inc	a
-	ld	(fat32_num),a
-	ld	hl,(fat32_ptrs)
+	ld	(fat32_num), a
+	ld	hl, (fat32_ptrs)
 	push	hl
 	pop	de
-	ld	(hl),0
-	ld	bc,7
+	ld	(hl), 0
+	ld	bc, 7
 	inc	de
 	ldir
 	ret
@@ -156,22 +166,22 @@ fat32_only:
 fat32_found:
 	push	af
 ;	call	debugStr
-;	db	'found fat',0
+;	db	'found fat', 0
 ;	call	debugNewLine
-	ld	a,(fat32_num)
-	cp	a,0
+	ld	a, (fat32_num)
+	cp	a, 0
 fat32_max := $ - 1
-	jr	z,.found_max
-	ld	bc,4				; hl -> end of lba
-	add	hl,bc
+	jr	z, .found_max
+	ld	bc, 4				; hl -> end of lba
+	add	hl, bc
 	push	hl
-	ld	c,8
-	ld	de,0
+	ld	c, 8
+	ld	de, 0
 fat32_ptrs := $ - 3
 	ldir
-	ld	(fat32_ptrs),de
+	ld	(fat32_ptrs), de
 	pop	hl
-	ld	de,scsiRead10Lba + 3
+	ld	de, scsiRead10Lba + 3
 	call	reverse_copy
 ;	call	scsiRequestDefaultRead		; read sector
 ;	ld	hl,xferCBWDataDefault
@@ -180,7 +190,7 @@ fat32_ptrs := $ - 3
 ;	call	debugNewLine
 
 .found_max:
-	ld	hl,fat32_num
+	ld	hl, fat32_num
 	inc	(hl)
 	pop	af
 	ret
@@ -188,34 +198,46 @@ fat32_ptrs := $ - 3
 ebr_found:
 	push	af
 ;	call	debugStr
-;	db	'found ebr',0
+;	db	'found ebr', 0
 ;	call	debugNewLine
-	ld	bc,4				; hl -> end of lba
-	add	hl,bc
-	ld	de,scsiRead10Lba + 3
+	ld	bc, 4				; hl -> end of lba
+	add	hl, bc
+	ld	de, scsiRead10Lba + 3
 	call	reverse_copy
 	call	find_fat32			; recursively locate fat32 partitions
 	pop	af
 	ret
 
 reverse_copy:
-	ld	b,4
+	ld	b, 4
 .loop:
-	ld	a,(hl)
-	ld	(de),a
+	ld	a, (hl)
+	ld	(de), a
 	inc	hl
 	dec	de
 	djnz	.loop
 	ret
 
+_fat_ValidSector:
+    pop de, hl
+    push    hl, de
+    ld  bc, 510
+    add hl,bc
+    call    test_sector
+    ld  a,0
+    ret z
+    inc a
+    ret
+
 check_sector_magic:
-	ld	hl,xferCBWDataDefault + 510	; offset = signature
-	ld	a,(hl)
-	cp	a,$55
+	ld	hl, xferCBWDataDefault + 510	; offset = signature
+test_sector:
+	ld	a, (hl)
+	cp	a, $55
 	ret	nz
 	inc	hl
-	ld	a,(hl)
-	cp	a,$aa
+	ld	a, (hl)
+	cp	a, $aa
 	ret
 
 fat_partition_lba:

@@ -9,6 +9,7 @@
 	.def	_fat_Select
 	.def	_fat_ReadSector
 	.def	_fat_WriteSector
+    .def    _fat_ValidSector
 
 saveSScreen		:= $0D0EA1F ; 21945 bytes
 
