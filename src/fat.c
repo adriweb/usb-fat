@@ -330,7 +330,7 @@ char find_highest(struct fat32dirent_t* de)
 void loop_dir(uint32_t fcluster, char (*funct)(struct fat32dirent_t*))
 {
 	uint32_t cluster = fcluster;
-	uint32_t fsect, cur_sect;
+	uint32_t fsect;
 	uint8_t* p;
 	struct fat32dirent_t d;
 
@@ -377,7 +377,7 @@ void loop_dir(uint32_t fcluster, char (*funct)(struct fat32dirent_t*))
 void loop_file(uint32_t fcluster, int size, void (*funct)(uint8_t *, int))
 {
 	uint32_t cluster;
-	uint32_t fsect, cur_sect;
+	uint32_t fsect;
 	uint32_t n;
 
     cluster = fcluster;

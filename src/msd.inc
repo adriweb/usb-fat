@@ -202,8 +202,8 @@ scsiReq:
 	sbc	hl,hl
 	adc	hl,bc
 	jr	z,msdCswAck		; no bulk out if 0 length req
-xferCBWData =$+1
 	ld	de,0
+xferCBWData := $ - 3
 	call	bulkTransfer
 msdCswAck:
 	call	msdDeviceEpIn

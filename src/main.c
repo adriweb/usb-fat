@@ -20,6 +20,8 @@ void send_char(char n)
 void key_Scan(void);
 unsigned char key_Any(void);
 
+const char *filename = "FILETEST.TXT";
+
 /* cannot use getcsc in usb */
 void wait_user(void) {
     while(!key_Any()) {
@@ -41,6 +43,11 @@ void open_fat_file(void) {
     os_ClrHome();
 
     os_line("insert msd...");
+
+    asm("ld iy,$d00080");
+    asm("res 1,(iy + $0d)"); // no text buffer
+    asm("res 3,(iy + $4a)"); // use first buffer (negated by next)
+    asm("set 5,(iy + $4c)"); // only display
 
     /* initialize mass storage device */
     if (!msd_Init()) {
@@ -69,10 +76,12 @@ void open_fat_file(void) {
         return;
     }
 
-    cat("FILETEST.TXT");
-
     /* attempt to delete it */
-    del("FILETEST.TXT");
+    if (exists(filename)) {
+        cat(filename);
+        del(filename);
+        os_line("deleted.");
+    }
 }
 
 void main(void) {

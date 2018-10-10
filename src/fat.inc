@@ -7,6 +7,12 @@ _fat_ReadSector:
 	ld	e, (iy + 9)
 	ld	bc, scsiRead10Lba
 	call	fat_add_fat_partition_lba
+;	call	debugStr
+;	db	'rd ', 0
+;	ld	hl, scsiRead10Lba
+;	call	debugHexBlockHL
+;	db	4
+;	call    debugNewLine
 	pop	de
 	call	scsiRequestRead
 	xor	a, a
@@ -21,12 +27,14 @@ _fat_WriteSector:
 	ld	e, (iy + 9)
 	ld	bc, scsiWrite10Lba
 	call	fat_add_fat_partition_lba
-	ld	hl, fat_partition_lba
-	call	debugHexBlockHL
-	db	4
-	call    debugNewLine
+;	call	debugStr
+;	db	'wr ', 0
+;	ld	hl, scsiWrite10Lba
+;	call	debugHexBlockHL
+;	db	4
+;	call    debugNewLine
 	pop	de
-	;call	scsiRequestWrite
+	call	scsiRequestWrite
 	xor	a, a
 	ret
 
@@ -92,9 +100,6 @@ fat_add_fat_partition_lba:
 	ld	a,l
 	inc	de
 	ld	(de), a
-;	ld	hl, scsiRead10Lba
-;	call	debugHexBlockHL
-;	db	4
 	ret
 
 find_fat32:
