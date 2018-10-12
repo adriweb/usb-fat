@@ -308,14 +308,21 @@ usbBusReset:
 ;	call	debugStr
 ;	db	'Resetting bus...',0
 ;	call	debugNewLine
-	ld	hl,mpUsbPortSC+1
+	ld	hl,mpUsbPortSC
+	res	2,(hl)
+.disable:
+	bit	2,(hl)
+	jr	nz,.disable
+	inc	l
 	set	0,(hl)
-	call	_Delay10ms
+	ld	a,5
+	call	_DelayTenTimesAms
 	res	0,(hl)
-.wait:
-	bit	0,(hl)
-	jr	nz,.wait
-	ret
+	dec	l
+.enable:
+	bit	2,(hl)
+	jr	z,.enable
+	jp	_Delay10ms
 
 ; Input:
 ;  ix = hub dev
