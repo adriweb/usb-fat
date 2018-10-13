@@ -374,50 +374,31 @@ static uint32_t locate_record(const char *path, unsigned int *record_index, cons
 	}
 }
 
-
 static uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old_cluster) {
 	uint32_t i, j;
 	uint32_t cluster = 0, avail_cluster;
-	int fat_size, ent_per_sec, eocm, mask, shift;
-	
-	if (fat_state.type == FAT_TYPE_FAT16) {
-		fat_size = 2;
-		ent_per_sec = 256;
-		eocm = 0xFFFF;
-		mask = 0xFF;
-		shift = 1;
-	} else {
-		fat_size = 4;
-		ent_per_sec = 128;
-		eocm = 0xFFFFFFF;
-		mask = 0x7F;
-		shift = 2;
-	}
 
+#define FAT_SIZE 4
+#define ENT_PER_SEC 128
+#define EOCM 0xFFFFFFF
+#define MASK 0x7F
+#define SHIFT 2
 
 	for (i = 0; i < fat_state.fat_size; i++) {
-		if (read_sector(fat_state.fat_pos + i, sector_buff) < 0)
-			return 0;
+		read_sector(fat_state.fat_pos + i, sector_buff);
 
-		for (j = 0; j < 512; j += fat_size) {
-			avail_cluster = (fat_size == 2) ? GET16(sector_buff + j) : GET32(sector_buff + j);
+		for (j = 0; j < 512; j += FAT_SIZE) {
+			avail_cluster = GET32(sector_buff + j);
 			if (!avail_cluster) {
-				cluster = i * ent_per_sec + j / fat_size;
-				if (fat_size == 2)
-					SET16(sector_buff + j, eocm);
-				else
-					SET32(sector_buff + j, eocm);
+				cluster = i * ENT_PER_SEC + j / FAT_SIZE;
+				SET32(sector_buff + j, EOCM);
 				write_sector(fat_state.fat_pos + i, sector_buff);
 				write_sector(fat_state.fat_pos + fat_state.fat_size + i, sector_buff);
 				if (old_cluster) {
-					read_sector(fat_state.fat_pos + old_cluster / ent_per_sec, sector_buff);
-					if (fat_size == 2)
-						SET16(sector_buff + ((old_cluster & mask) << shift), cluster);
-					else
-						SET32(sector_buff + ((old_cluster & mask) << shift), cluster);
-					write_sector(fat_state.fat_pos + old_cluster / ent_per_sec, sector_buff);
-					if (write_sector(fat_state.fat_pos + fat_state.fat_size + old_cluster / ent_per_sec, sector_buff) < 0)
-						return 0;
+					read_sector(fat_state.fat_pos + old_cluster / ENT_PER_SEC, sector_buff);
+					SET32(sector_buff + ((old_cluster & MASK) << SHIFT), cluster);
+					write_sector(fat_state.fat_pos + old_cluster / ENT_PER_SEC, sector_buff);
+					write_sector(fat_state.fat_pos + fat_state.fat_size + old_cluster / ENT_PER_SEC, sector_buff);
 				}
 
 				goto allocated;
@@ -639,8 +620,7 @@ bool fat_read_sect(int fd) {
 			desc->current_cluster = alloc_cluster(desc->entry_sector, desc->entry_index, old_cluster);
 	}
 	
-	if (read_sector(sector, sector_buff) < 0)
-		return false;
+	read_sector(sector, sector_buff);
 
 	return true;
 }
@@ -674,8 +654,7 @@ bool fat_write_sect(int fd) {
 
 	read_sector(desc->entry_sector, sector_buff);
 	SET32(sector_buff + (desc->entry_index * 32 + 28), desc->fpos);
-	if (write_sector(desc->entry_sector, sector_buff) < 0)
-		return 0;
+	write_sector(desc->entry_sector, sector_buff);
 	return true;
 }
 

@@ -40,7 +40,7 @@ void os_line(const char *str) {
 
 void open_fat_file(void) {
     uint8_t sect[512];
-    unsigned int size;
+    unsigned int size, ticks;
     uint8_t num;
     fat_partition_t fat_partitions[MAX_PARTITIONS];
     char buf[256];
@@ -87,20 +87,41 @@ void open_fat_file(void) {
     delete_file(wrtest);
     create_file(0, wrtest, 0);
 
+    fd = fat_open(rdtest, O_RDONLY);
+    if (fd >= 0) {
+
+	os_line("reading file...");
+
+        timer_Control = TIMER1_DISABLE;
+        timer_1_ReloadValue = timer_1_Counter = 0;	
+        timer_Control = TIMER1_ENABLE | TIMER1_32K | TIMER1_UP;
+
+	for (size = 0; size < WR_SIZE; size += 512) {
+		fat_read_sect(fd);
+	}
+
+	ticks = (unsigned int)timer_1_Counter;
+	sprintf(buf, "ticks: %u", ticks);
+        os_line(buf);
+    }
+
     fd = fat_open(wrtest, O_WRONLY);
     if (fd >= 0) {
 
 	os_line("writing file...");
 
+        timer_Control = TIMER1_DISABLE;
+        timer_1_ReloadValue = timer_1_Counter = 0;	
+        timer_Control = TIMER1_ENABLE | TIMER1_32K | TIMER1_UP;
+
 	for (size = 0; size < WR_SIZE; size += 512) {
-		memcpy(sector_buff, (void*)size, 512);
 		fat_write_sect(fd);
-		if( !(size % (512 * 200)) )
-		{
-			sprintf(buf, "addr: %u", size);
-			os_line(buf);
-		}
 	}
+
+	ticks = (unsigned int)timer_1_Counter;
+	sprintf(buf, "ticks: %u", ticks);
+        os_line(buf);
+
         fat_set_fsize(wrtest, WR_SIZE);
 
         fat_close(fd);
