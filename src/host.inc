@@ -1,10 +1,8 @@
 usbRangeLow		:= $D13FD8
-qtdCount		:= $D13FD8
-qhCount			:= $D13FDA
-qhFreeList		:= $D13FDB
-qtdFreeList		:= $D13FDE
-setupPacket		:= $D13FE1
-unalloc0		:= $D13FE9 ; 23 bytes
+qhFreeList		:= $D13FD8
+qtdFreeList		:= $D13FDB
+setupPacket		:= $D13FDE
+unalloc0		:= $D13FE6 ; 26 bytes
 periodicList		:= $D14000 ; 4K aligned, 1K
 alignedPoolLow		:= $D14400 ; 32b aligned
 qhHead			:= $D17702
@@ -151,11 +149,9 @@ usbInit:
 	call	_usb_SelfPowered
 	jr	nz,.waitPlug
 	call	usbChipReset
-	xor	a,a
-	sbc	hl,hl
-	ld	(qtdCount),hl
 	ld	hl,periodicList
 	ld	(mpUsbPeriodicListBase),hl
+	xor	a,a
 	ld	b,a
 	inc	a
 .fill:
@@ -462,11 +458,7 @@ getConfigDescTotalLength:
 ;  de = ?
 ;  hl = qh
 qhAlloc:
-	ld	hl,qhCount
-	inc	(hl)
-	call	m,debugAbort
-	inc	hl;qhFreeList
-	ld	hl,(hl)
+	ld	hl,(qhFreeList)
 	bit	0,l
 	call	nz,debugAbort	; could malloc, but would require 255 + sizeof qh to properly align (though you would get free qtds I guess)
 	ld	de,(hl)
@@ -642,10 +634,6 @@ qhInit:
 qhFree:
 	bit	0,l
 	call	nz,debugAbort
-	ld	bc,(qhCount)
-	dec	c
-	call	m,debugAbort
-	ld	(qhCount),bc
 	ld	bc,(qhFreeList)
 	ld	(hl),bc
 	ld	(qhFreeList),hl
@@ -656,11 +644,6 @@ qhFree:
 ;  hl = qtd
 qtdAlloc:
 	push	de
-	ld	hl,(qtdCount)
-	inc	hl
-	bit	1,h
-	call	nz,debugAbort
-	ld	(qtdCount),hl
 	ld	hl,(qtdFreeList)
 	bit	0,l
 	call	nz,debugAbort	; could malloc more I guess, or requisition a qh (would help dynamically fix the ratio)
@@ -676,11 +659,6 @@ qtdAlloc:
 qtdFree:
 	bit	0,l
 	call	nz,debugAbort
-	ld	bc,(qtdCount)
-	dec	bc
-	bit	1,b
-	call	nz,debugAbort
-	ld	(qtdCount),bc
 	ld	bc,(qtdFreeList)
 	ld	(hl),bc
 	ld	(qtdFreeList),hl
@@ -817,7 +795,7 @@ controlTransferAdd:
 	push	bc
 	ld	bc,8
 	ld	a,2
-	call	.init
+	call	.ready
 	pop	bc
 	pop	de
 	pop	hl
@@ -828,10 +806,10 @@ controlTransferAdd:
 	call	nz,bulkTransferAddEnter
 	pop	af
 	rlca
-	sbc	a,a
-	inc	a
+	and	a,1
+	xor	a,(3 shl 2) or 1
 	ld	bc,1 shl 15
-.init:
+.ready:
 	call	qtdInitDummy
 	jr	qtdInit
 
@@ -952,7 +930,7 @@ bulkTransferAddEnter:
 	db	$fd
 
 ; Input:
-;  a = pid
+;  a = ioc or cpage or cerr or pid
 ;  bc = dt or len
 ;  de = buf
 ;  hl = next qtd
@@ -971,7 +949,6 @@ qtdInit:
 	ld	(iy+qtdNext),hl
 	pop	hl
 	ld	(iy+qtdAltNext),hl
-	or	a,3 shl 2	; Cerr = 3
 	ld	(iy+qtdPid),a
 	ld	(iy+qtdLen),bc
 	lea	hl,iy+qtdBufPtr

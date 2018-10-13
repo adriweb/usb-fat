@@ -78,9 +78,17 @@ void open_fat_file(void) {
 
     /* attempt to delete it */
     if (exists(filename)) {
+        char buf[10];
+        unsigned int ticks;
+        timer_Control = TIMER1_DISABLE;
+        timer_1_ReloadValue = timer_1_Counter = 0;
+        timer_Control = TIMER1_ENABLE | TIMER1_32K | TIMER1_UP;
+
         cat(filename);
-        del(filename);
-        os_line("deleted.");
+
+        ticks = (unsigned int)timer_1_Counter;
+        sprintf(buf, "ticks: %u", ticks);
+        os_line(buf);
     }
 }
 

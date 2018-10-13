@@ -402,7 +402,7 @@ void loop_file(uint32_t fcluster, int size, void (*funct)(uint8_t *, int))
 		readsector(cur_sect, sect);
 		
 		// call provided function with each sector
-		funct(sect, n);
+		//funct(sect, n);
 		
 		n -= 512;
 		cur_sect++;

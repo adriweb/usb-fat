@@ -161,8 +161,8 @@ scsiRequest:
 	pop	ix
 	ret	z
 	or	a,a			; csw packet status
-	ret	nz			; fail if anything other than csw status --  should we perform any recovery here?
-scsiFail:
+	ret	nz			; fail if anything other than csw status
+scsiFail:				; should we perform any recovery here?
 	call	debugStr
 	db	'transmission error.',0
 	call	debugNewLine
@@ -194,6 +194,7 @@ scsiReq:
 	pop	de			; de -> packetCBW
 	ld	bc,packetCBWLen
 	call	bulkTransfer
+	call	qhReap
 	pop	bc
 	pop	af
 	or	a,a
@@ -205,6 +206,7 @@ scsiReq:
 	ld	de,0
 xferCBWData := $ - 3
 	call	bulkTransfer
+	call	qhReap
 msdCswAck:
 	call	msdDeviceEpIn
 	ld	de,packetCSW
@@ -212,7 +214,7 @@ msdCswAck:
 	call	bulkTransfer
 	call	qhReap
 	ld	hl,(packetCBW+4)
-	ld	de,(packetCSW+4)		; check transfer tags
+	ld	de,(packetCSW+4)	; check transfer tags
 	xor	a,a
 	sbc	hl,de
 	ret	nz
@@ -220,9 +222,9 @@ msdCswAck:
 	ld	de,(packetCBW)
 	xor	a,a
 	sbc	hl,de
-	ret	nz				; technically should check for 0x53 too... but meh, speedz
+	ret	nz			; technically should check for 0x53 too
 	ld	a,(packetCSW+12)
-	or	a,a				; check for good status of transfer
+	or	a,a			; check for good status of transfer
 	ret
 
 ; Input:
@@ -244,8 +246,8 @@ findDescriptor:
 	jr	nc,notFoundDescriptor
 	push	hl
 	pop	iy
-	ld	c,(hl)				; length of descriptor
-	cp	a,(iy+1)			; bDescriptorType == 4
+	ld	c,(hl)			; length of descriptor
+	cp	a,(iy+1)		; bDescriptorType == 4
 	jr	z,foundDescriptor
 	add	hl,bc
 	jr	findDescriptor
@@ -262,7 +264,7 @@ notFoundDescriptor:
 ;  nc = not found
 ;   c = found
 findScsiEndpoints:
-	ld	bc,6 or ($50 shl 8)		; check scsi bot
+	ld	bc,6 or ($50 shl 8)	; check scsi bot
 	call	checkSubclassProtocol
 	jr	nz,endpointFail
 	push	hl
@@ -271,7 +273,7 @@ findScsiEndpoints:
 	ld	c,0
 	ld	de,0
 findScsiEndpointsLoop:
-	ld	a,5				; endpoint descriptor type
+	ld	a,5			; endpoint descriptor type
 	call	getDescriptor
 	ret	nc
 	ld	a,(iy+2)
@@ -322,20 +324,20 @@ findFirstMsdInterface:
 	ld	hl,0
 msd_config_start := $ - 3
 findMsdInterface:
-	ld	a,4				; interface descriptor type
+	ld	a,4			; interface descriptor type
 	call	getDescriptor
 	ret	nc
-	ld	a,(iy+0)			; bLength
+	ld	a,(iy+0)		; bLength
 	cp	a,9
-	jr	c,findMsdInterface		; ensure interface length >= 9
+	jr	c,findMsdInterface	; ensure interface length >= 9
 	ld	a,(iy+5)
-	cp	a,8				; bInterfaceClass == 8
+	cp	a,8			; bInterfaceClass == 8
 	jr	nz,findMsdInterface
 ;	call	debugStr
 ;	db	'interface: ',0
 	ld	a,(iy+2)
-	ld	(packetMSDReset+4),a		; store the interface number
-	ld	(packetMSDMaxLUN+4),a		; store the interface number
+	ld	(packetMSDReset+4),a	; store the interface number
+	ld	(packetMSDMaxLUN+4),a	; store the interface number
 ;	call	debugHexA
 ;	call	debugNewLine
 	scf
@@ -346,10 +348,10 @@ findMsdInterface:
 ;   b = protocol
 checkSubclassProtocol:
 	ld	a,(iy+6)
-	cp	a,c				; scsi subclass
+	cp	a,c			; scsi subclass
 	ret	nz
 	ld	a,(iy+7)
-	cp	a,b				; bot protocol
+	cp	a,b			; bot protocol
 	ret
 
 msdSetLun:
