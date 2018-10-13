@@ -68,9 +68,9 @@ bool fat_valid();
 
 /* These should be provided by you */
 /* Returns < 0 on error */
-//#define write_sector_call(sector, data) fat_WriteSector(data, sector)
-//#define read_sector_call(sector, data) fat_ReadSector(data, sector)
-int write_sector_call(uint32_t sector, uint8_t *data);
-int read_sector_call(uint32_t sector, uint8_t *data);
+#define write_sector_call(sector, data) fat_WriteSector(data, sector)
+#define read_sector_call(sector, data) fat_ReadSector(data, sector)
+//int write_sector_call(uint32_t sector, uint8_t *data);
+//int read_sector_call(uint32_t sector, uint8_t *data);
 
 #endif
