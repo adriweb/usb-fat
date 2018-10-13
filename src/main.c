@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <tice.h>
 #include <keypadc.h>
+#include <string.h>
 
 #define MAX_PARTITIONS 10
 
@@ -20,7 +21,10 @@ void send_char(char n)
 void key_Scan(void);
 unsigned char key_Any(void);
 
-const char *filename = "FILETEST.TXT";
+const char *rdtest = "RDTEST.TXT";
+const char *wrtest = "WRTEST.TXT";
+
+#define WR_SIZE 0x400000
 
 /* cannot use getcsc in usb */
 void wait_user(void) {
@@ -35,10 +39,14 @@ void os_line(const char *str) {
 }
 
 void open_fat_file(void) {
+    uint8_t sect[512];
     unsigned int size;
     uint8_t num;
     fat_partition_t fat_partitions[MAX_PARTITIONS];
-    char buffer[256];
+    char buf[256];
+    int fd;
+
+    sector_buff = sect;
 
     os_ClrHome();
 
@@ -63,32 +71,39 @@ void open_fat_file(void) {
     }
 
     /* log number of partitions */
-    sprintf(buffer, "total fat partitions: %u", num);
-    os_line(buffer);
+    sprintf(buf, "total fat partitions: %u", num);
+    os_line(buf);
 
     /* just use the first partition */
     fat_Select(fat_partitions, 0);
 
     os_line("using fat partition 1.");
 
-    if (fat_Init() != 0) {
+    if (init_fat() != 0) {
         os_line("invalid fat partition.");
         return;
     }
+    
+    delete_file(wrtest);
+    create_file(0, wrtest, 0);
 
-    /* attempt to delete it */
-    if (exists(filename)) {
-        char buf[10];
-        unsigned int ticks;
-        timer_Control = TIMER1_DISABLE;
-        timer_1_ReloadValue = timer_1_Counter = 0;
-        timer_Control = TIMER1_ENABLE | TIMER1_32K | TIMER1_UP;
+    fd = fat_open(wrtest, O_WRONLY);
+    if (fd >= 0) {
 
-        cat(filename);
+	os_line("writing file...");
 
-        ticks = (unsigned int)timer_1_Counter;
-        sprintf(buf, "ticks: %u", ticks);
-        os_line(buf);
+	for (size = 0; size < WR_SIZE; size += 512) {
+		memcpy(sector_buff, (void*)size, 512);
+		fat_write_sect(fd);
+		if( !(size % (512 * 200)) )
+		{
+			sprintf(buf, "addr: %u", size);
+			os_line(buf);
+		}
+	}
+        fat_set_fsize(wrtest, WR_SIZE);
+
+        fat_close(fd);
     }
 }
 
