@@ -107,7 +107,6 @@ _fname_to_fatname:
 
 _next_cluster:
 	ld	hl,3
-	ld	e,h
 	inc.s	bc
 	ld	b,h
 	add	hl,sp
@@ -119,16 +118,14 @@ _next_cluster:
 	jr	z,.getshift
 	add	a,a
 	adc	hl,hl
-	rl	e
 .getshift:
 	add	a,a
 	ld	c,a
 	rl	b
 	push	bc
-	ld	de,(_fat_state + 20)
+	ld	de,(_fat_state + 12)
 	add	hl,de
-	ld	a,(_fat_state + 20 + 3)
-	add	a,e
+	ld	a,(_fat_state + 12 + 3)
 	ld	e,a
 	call	read_sector
 	pop	de
@@ -155,12 +152,11 @@ _next_cluster:
 	call	_end_of_chain_mark
 	pop	hl
 	pop	de
-	ret	c
+	ret	nc
+	or	a,a
 	sbc	hl,hl
 	ld	e,l
 	ret
-
-
 
 _end_of_chain_mark:
 	pop	de
