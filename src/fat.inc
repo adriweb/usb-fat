@@ -72,7 +72,7 @@ _fname_to_fatname:
 .loop3456:			; for (; j < 11 && name[i]; j++, i++)
 	ld	a,b
 	cp	a,11
-	jr	nc,darwww
+	ret	nc
 	ld	a,(de)
 	or	a,a
 	jr	z,.other
@@ -99,23 +99,68 @@ _fname_to_fatname:
 	ld	a,11
 .spacefillloop:			; for (; j < 11; j++)
 	cp	a,b
-	jr	z,darwww
+	ret	z
 	ld	(hl),32		; fname[j] = ' '
 	inc	hl
 	inc	b
 	jr	.spacefillloop
 
-darwww:
-	ld	hl,(iy + 6)
-	ld	b,12
-.oo:
-	push	bc
+_next_cluster:
+	ld	hl,3
+	ld	e,h
+	inc.s	bc
+	ld	b,h
+	add	hl,sp
+	ld	a,(_fat_state + 1)
+	or	a,a
 	ld	a,(hl)
-	call	_PutC
 	inc	hl
-	pop	bc
-	djnz	.oo
+	ld	hl,(hl)
+	jr	z,.getshift
+	add	a,a
+	adc	hl,hl
+	rl	e
+.getshift:
+	add	a,a
+	ld	c,a
+	rl	b
+	push	bc
+	ld	de,(_fat_state + 20)
+	add	hl,de
+	ld	a,(_fat_state + 20 + 3)
+	add	a,e
+	ld	e,a
+	call	read_sector
+	pop	de
+	ld	hl,(_sector_buff)
+	add	hl,de
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ld	a,(_fat_state + 1)
+	or	a,a
+	jr	z,.getsec
+	dec	hl
+	ld	de,(hl)
+	inc	hl
+	inc	hl
+	inc	hl
+	ld	a,(hl)
+	and	$0F
+.getsec:
+	ex	de,hl
+	ld	e,a
+	push	de
+	push	hl
+	call	_end_of_chain_mark
+	pop	hl
+	pop	de
+	ret	c
+	sbc	hl,hl
+	ld	e,l
 	ret
+
+
 
 _end_of_chain_mark:
 	pop	de

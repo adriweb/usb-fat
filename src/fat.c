@@ -203,7 +203,7 @@ uint32_t sector_to_cluster(uint32_t sector) {
 }
 
 
-uint32_t next_cluster(uint32_t prev_cluster) {
+uint32_t next_cluster(uint32_t prev_cluster);/* {
 	uint32_t cluster_pos, cluster_sec;
 
 	if (fat_state.type == FAT_TYPE_FAT16) {
@@ -227,7 +227,7 @@ uint32_t next_cluster(uint32_t prev_cluster) {
 
 	return cluster_sec;
 }
-
+*/
 
 static void dealloc_fat(uint32_t fat_entry) {
 	uint32_t sector, index;

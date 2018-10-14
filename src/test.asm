@@ -10,6 +10,7 @@
 	.def	_fat_ReadSector
 	.def	_fat_WriteSector
 
+	.def	_next_cluster
 	.def	_fname_to_fatname
 	.def	_cluster_to_sector
 	.def	_init_fat
