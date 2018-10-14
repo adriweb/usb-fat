@@ -1,3 +1,27 @@
+
+
+_end_of_chain_mark:
+	ld	iy,0
+	add	iy,sp
+	ld	hl,(iy + 3)		; euhl = cluster
+	ld	e,(iy + 6)
+	ld	a,(_fat_state + 24)
+	or	a,a
+	jr	nz,.fat32		; if (fat_state.type == fat_type_fat16)
+	ld	bc,65528		; return cluster >= 0xfff8 ? true : false;
+	xor	a,a
+	jr	.check
+.fat32:
+	ld	bc,16777208		; return cluster >= 0x0ffffff8 ? true : false;
+	ld	a,15
+.check:
+	call	__lcmpu
+	ld	a,0
+	ret	c
+	inc	a
+	ret
+
+
 _fat_ReadSector:
 	ld	iy, 0
 	add	iy, sp

@@ -28,6 +28,8 @@ freely, subject to the following restrictions:
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
 #include "fat.h"
 
 #define GET32(p)		(*((uint32_t*)(p)))
@@ -59,7 +61,7 @@ struct {
 	uint32_t	fat_pos;
 	uint32_t	root_dir_pos;
 	uint32_t	data_region;
-	enum FATType	type;
+	uint8_t		type;
 } fat_state;
 
 struct FATFileDescriptor {
@@ -76,12 +78,12 @@ struct FATFileDescriptor {
 static struct FATFileDescriptor fat_fd[MAX_FD_OPEN];
 static int32_t fat_key = 0;
 
-static bool end_of_chain_mark(uint32_t cluster) {
+bool end_of_chain_mark(uint32_t cluster);/* {
 	if (fat_state.type == FAT_TYPE_FAT16)
 		return cluster >= 0xFFF8 ? true : false;
 	return cluster >= 0x0FFFFFF8 ? true : false;
 }
-
+*/
 int init_fat() {
 	uint8_t *data = sector_buff;
 	uint16_t reserved_sectors;
