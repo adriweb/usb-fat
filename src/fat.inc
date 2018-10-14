@@ -107,23 +107,22 @@ _fname_to_fatname:
 
 _next_cluster:
 	ld	hl,3
-	inc.s	bc
-	ld	b,h
 	add	hl,sp
-	ld	a,(_fat_state + 1)
+	ld	a,(_fat_state + 24)
 	or	a,a
 	ld	a,(hl)
 	inc	hl
 	ld	hl,(hl)
-	jr	z,.getshift
+	jr	z,.fat16.1
 	add	a,a
 	adc	hl,hl
-.getshift:
-	add	a,a
-	ld	c,a
-	rl	b
-	push	bc
-	ld	de,(_fat_state + 12)
+.fat16.1:
+	ex	de,hl
+	sbc	hl,hl
+	ld	l,a
+	add	hl,hl
+	push	hl
+	ld	hl,(_fat_state + 12)
 	add	hl,de
 	ld	a,(_fat_state + 12 + 3)
 	ld	e,a
@@ -131,31 +130,37 @@ _next_cluster:
 	pop	de
 	ld	hl,(_sector_buff)
 	add	hl,de
-	ld	e,(hl)
-	inc	hl
-	ld	d,(hl)
-	ld	a,(_fat_state + 1)
+	ld	a,(_fat_state + 24)
 	or	a,a
-	jr	z,.getsec
-	dec	hl
+	jr	z,.fat16.2
 	ld	de,(hl)
 	inc	hl
 	inc	hl
 	inc	hl
 	ld	a,(hl)
 	and	$0F
-.getsec:
+	ld	hl,8
+	add	hl,de
 	ex	de,hl
 	ld	e,a
-	push	de
-	push	hl
-	call	_end_of_chain_mark
-	pop	hl
-	pop	de
+	adc	a,$F0
 	ret	nc
-	or	a,a
-	sbc	hl,hl
-	ld	e,l
+	ld	e,a
+	ex	de,hl
+	ld	e,a
+	ret
+
+.fat16.2:
+	ld	e,(hl)
+	inc	hl
+	ld	d,(hl)
+	ld	hl,$FF0008
+	add	hl,de
+	ex	de,hl
+	ld	e,a
+	ret	nc
+	ex	de,hl
+	ld	e,a
 	ret
 
 _end_of_chain_mark:
