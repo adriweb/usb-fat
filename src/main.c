@@ -21,7 +21,7 @@ void send_char(char n)
 void key_Scan(void);
 unsigned char key_Any(void);
 
-const char *rdtest = "RDTESTAA.TX";
+const char *rdtest = "RDTEST.TXT";
 const char *wrtest = "WRTEST.TXT";
 
 #define WR_SIZE 1048576
