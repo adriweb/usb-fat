@@ -75,8 +75,8 @@ struct FATFileDescriptor {
 	bool		write;
 };
 
-static struct FATFileDescriptor fat_fd[MAX_FD_OPEN];
-static int32_t fat_key = 0;
+struct FATFileDescriptor fat_fd[MAX_FD_OPEN];
+int32_t fat_key = 0;
 
 bool end_of_chain_mark(uint32_t cluster);/* {
 	if (fat_state.type == FAT_TYPE_FAT16)
@@ -84,7 +84,7 @@ bool end_of_chain_mark(uint32_t cluster);/* {
 	return cluster >= 0x0FFFFFF8 ? true : false;
 }
 */
-int init_fat() {
+bool init_fat();/* {
 	uint8_t *data = sector_buff;
 	uint16_t reserved_sectors;
 	uint8_t *u8;
@@ -144,7 +144,7 @@ int init_fat() {
 		fat_state.data_region = fat_state.root_dir_pos;
 		fat_state.root_dir_pos = fat_state.fat_pos + fat_state.fat_size * 2 + fat_state.cluster_size * (GET32(data + 44) - 2);
 
-		/* Invalidate free space counter */
+		/* Invalidate free space counter 
 		fsinfo = GET16(data + 48);
 		read_sector(fsinfo, data);
 		if (GET32(data + 0) == 0x41615252 && GET16(data + 510) == 0xAA55) {
@@ -160,7 +160,7 @@ int init_fat() {
 
 	return 0;
 }
-
+*/
 
 static void fname_to_fatname(char *name, char *fname) {
 	uint8_t i, j;

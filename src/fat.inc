@@ -1,26 +1,274 @@
 
 
 _end_of_chain_mark:
-	ld	iy,0
-	add	iy,sp
-	ld	hl,(iy + 3)		; euhl = cluster
-	ld	e,(iy + 6)
+	pop	de
+	pop	hl
+	dec	sp
+	pop	af
+	dec	sp
+	dec	sp
+	push	hl
+	push	de
+	ld	de,8
 	ld	a,(_fat_state + 24)
 	or	a,a
-	jr	nz,.fat32		; if (fat_state.type == fat_type_fat16)
-	ld	bc,65528		; return cluster >= 0xfff8 ? true : false;
-	xor	a,a
-	jr	.check
+	jr	nz,.fat32
+	add.s	hl,de
+	sbc	a,a
+	ret
 .fat32:
-	ld	bc,16777208		; return cluster >= 0x0ffffff8 ? true : false;
-	ld	a,15
-.check:
-	call	__lcmpu
-	ld	a,0
-	ret	c
-	inc	a
+	add	hl,de
+	adc	a,$f0
+	sbc	a,a
 	ret
 
+_init_fat:
+	or	a,a
+	sbc	hl,hl
+	ld	e,l
+	call	read_sector		; read_sector(0, sector_buff);
+
+	ld	iy,(_sector_buff)
+	ld	hl,(iy + 11)
+	ld	a,h
+	sub	a,512 shr 8
+	or	a,l			; if (get16(data + 11) != 512)
+	jr	z,.goodsectsz
+	xor	a,a			; return 0;
+	ret
+
+.goodsectsz:
+	ld	a,(iy + 13)
+	ld	(_fat_state + 1),a	; fat_state.cluster_size = data[13];
+
+	ld	bc,(iy + 17)
+	ld	hl,_fat_state + 2
+	ld	(hl),c
+	inc	hl
+	ld	(hl),b			; fat_state.root_directory_size = get16(data + 17);
+
+	ld	a,(iy + 16)
+	cp	a,2			; if (data[16] != 2)
+	jr	z,.goodfatnum
+	xor	a,a			; return 0;
+	ret
+
+.goodfatnum:
+	or	a,a			; if (get16(data + 19))
+	sbc	hl,hl
+	ld	e,l
+	ld	l,(iy + 19)
+	ld	h,(iy + 20)
+	ld	a,(_fat_state + 1)
+	ld	bc,0
+	ld	c,a
+	add	hl,de
+	xor	a,a
+	sbc	hl,de
+	jr	z,.getclusters
+
+	call	__idivs			; fat_state.clusters = get16(data + 19) / fat_state.cluster_size;
+	xor	a,a
+	ld	(_fat_state + 4),hl
+	ld	e,a
+	ld	(_fat_state + 7),a
+	jr	.gotclusters
+.getclusters:				; else
+	ld	hl,(iy + 32)		; fat_state.clusters = get32(data + 32) / fat_state.cluster_size;
+	ld	e,(iy + 35)
+	call	__ldivu
+	ld	(_fat_state + 4),hl
+	ld	a,e
+	ld	(_fat_state + 7),a
+.gotclusters:				; if (fat_state.clusters < 4085)
+	xor	a,a
+	ld	bc,4085
+	call	__lcmpu
+	jr	nc,.fatvalid
+	xor	a,a			; return 0;
+	ret
+.fatvalid:					; else if (fat_state.clusters < 65525)
+	ld	a,(_fat_state + 7)
+	ld	e,a
+	ld	hl,(_fat_state + 4)
+	xor	a,a
+	ld	bc,65525
+	call	__lcmpu
+	jr	nc,.fat32
+	xor	a,a			; fat_state.type = fat_type_fat16;
+	jr	.fat16
+.fat32:
+	ld	a,1			; fat_state.type = fat_type_fat32;
+.fat16:
+	ld	(_fat_state + 24),a
+	or	a,a			; if (fat_state.type <= fat_type_fat16)
+	push	af
+	jr	nz,.getu8
+	ld	a,(iy + 38)		; tu8 = data[38];
+	jr	.gotu8
+.getu8:
+	ld	a,(iy + 66)		; tu8 = data[66];
+.gotu8:
+	cp	a,$28			; if (tu8 != 0x28 && tu8 != 0x29)
+	jr	z,.goodu8
+	cp	a,$29
+	jr	z,.goodu8
+	pop	af
+	xor	a,a			; return 0;
+	ret
+.goodu8:
+	pop	af			; if (fat_state.type <= fat_type_fat16)
+	jr	nz,l_18
+
+	xor	a,a
+	sbc	hl,hl
+	ld	l,(iy + 22)
+	ld	h,(iy + 23)
+	ld	(_fat_state + 8),hl	; fat_state.fat_size = get16(data + 22);
+	ld	(_fat_state + 11),a
+	jr	l_20
+l_18:
+	ld	hl,(iy + 36)		; fat_state.fat_size = get32(data + 36);
+	ld	a,(iy + 39)
+	ld	(_fat_state + 8),hl
+	ld	(_fat_state + 11),a
+l_20:
+	xor	a,a			; fat_state.fat_pos = reserved_sectors;
+	sbc	hl,hl
+	ld	l,(iy + 14)
+	ld	h,(iy + 15)		; reserved_sectors = get16(data + 14);
+	ld	(_fat_state + 12),hl
+	ld	(_fat_state + 15),a
+
+	ld	a,(_fat_state + 11)	; fat_state.root_dir_pos = fat_state.fat_pos + fat_state.fat_size * 2;
+	ld	hl,(_fat_state + 8)
+	ld	e,a
+	xor	a,a
+	ld	bc,2
+	call	__lmulu
+	ld	bc,(_fat_state + 12)
+	ld	a,(_fat_state + 15)
+	call	__ladd
+	ld	a,e
+	ld	(_fat_state + 16),hl
+	ld	(_fat_state + 19),a	; fat_state.root_dir_pos
+
+	ld	bc,0
+	ld	a,(_fat_state + 2)
+	ld	c,a
+	ld	a,(_fat_state + 3)	; fat_state.root_directory_size
+	ld	b,a
+
+	srl	b			; fat_state.data_region = fat_state.root_dir_pos + fat_state.root_directory_size * 32 / 512;
+	rr	c
+	srl	b
+	rr	c
+	srl	b
+	rr	c
+	srl	b
+	rr	c
+	
+	xor	a,a
+	call	__ladd
+	ld	(_fat_state + 20),hl
+	ld	a,e
+	ld	(_fat_state + 23),a
+
+	ld	a,(_fat_state + 24)	; if (fat_state.type == fat_type_fat32)
+	cp	a,1
+	jr	nz,l_28
+	ld	bc,(_fat_state + 16)	; fat_state.data_region = fat_state.root_dir_pos;
+	ld	a,(_fat_state + 19)
+	ld	(_fat_state + 20),bc
+	ld	(_fat_state + 23),a
+
+	ld	hl,(iy + 44)		; fat_state.root_dir_pos += + fat_state.cluster_size * (get32(data + 44) - 2);
+	ld	e,(iy + 47)
+	xor	a,a
+	ld	bc,2
+	call	__lsub
+	ld	bc,0
+	ld	a,(_fat_state + 1)
+	ld	c,a
+	call	__lmulu
+	ld	bc,(_fat_state + 16)
+	ld	a,(_fat_state + 19)
+	call	__ladd
+	ld	(_fat_state + 16),hl
+	ld	a,e
+	ld	(_fat_state + 19),a
+
+	or	a,a			; fsinfo = get16(data + 48);
+	sbc	hl,hl
+	ld	e,l
+	ld	l,(iy + 48)
+	ld	h,(iy + 49)		; /* invalidate free space counter */
+	ld	(.fsinfo),hl
+	call	read_sector		; read_sector(fsinfo, data);
+
+	ld	hl,(iy + 0)		; if (get32(data + 0) == 0x41615252 && get16(data + 510) == 0xaa55)
+	ld	e,(iy + 3)
+	ld	bc,$615252
+	ld	a,$41
+	call	__lcmpu
+	jr	nz,l_28
+	ld	bc,510
+	lea	hl,iy
+	add	hl,bc
+	call	test_sector
+	jr	nz,l_28
+
+	ld	bc,488			; set32(data + 488, 0xffffffff);
+	lea	hl,iy
+	add	hl,bc
+	ld	a,255
+	ld	(hl),a
+	inc	hl
+	ld	(hl),a
+	inc	hl
+	ld	(hl),a
+	inc	hl
+	ld	(hl),a
+
+	ld	e,0
+	ld	hl,0
+.fsinfo := $ - 3
+	call	write_sector		; write_sector(fsinfo, data);
+l_28:
+	ld	a,0			; for (i = 0; i < max_fd_open; i++)
+l_25:
+	ld	l,a
+	ld	h,29
+	mlt	hl
+	ld	de,_fat_fd
+	add	hl,de
+	ld	iy,hl
+	ld	de,16777215
+	ld	(iy + 0),de
+	ld	(iy + 3),255		; fat_fd[i].key = -1;
+	inc	a
+l_27:
+	cp	a,4
+	jr	nz,l_25
+
+	ld	a,1
+	ld	(_fat_state + 0),a	; fat_state.valid = true;
+	ret				; return 1;
+
+
+; euhl = sector lba
+read_sector:
+	ld	bc,scsiRead10Lba
+	call	add_fat_partition_lba
+	ld	de,(_sector_buff)
+	jp	scsiRequestRead
+
+; euhl = sector lba
+write_sector:
+	ld	bc,scsiWrite10Lba
+	call	add_fat_partition_lba
+	ld	de,(_sector_buff)
+	jp	scsiRequestWrite
 
 _fat_ReadSector:
 	ld	iy, 0
@@ -30,7 +278,7 @@ _fat_ReadSector:
 	ld	hl, (iy + 6)
 	ld	e, (iy + 9)
 	ld	bc, scsiRead10Lba
-	call	fat_add_fat_partition_lba
+	call	add_fat_partition_lba
 ;	call	debugStr
 ;	db	'rd ', 0
 ;	ld	hl, scsiRead10Lba
@@ -50,7 +298,7 @@ _fat_WriteSector:
 	ld	hl, (iy + 6)
 	ld	e, (iy + 9)
 	ld	bc, scsiWrite10Lba
-	call	fat_add_fat_partition_lba
+	call	add_fat_partition_lba
 ;	call	debugStr
 ;	db	'wr ', 0
 ;	ld	hl, scsiWrite10Lba
@@ -104,7 +352,7 @@ msd_mbr_parse:
 fat32_num := $ - 1
 	ret
 
-fat_add_fat_partition_lba:
+add_fat_partition_lba:
 	push	bc
 	ld	bc, (fat_partition_lba)
 	ld	a, (fat_partition_lba + 3)

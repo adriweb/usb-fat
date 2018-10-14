@@ -51,7 +51,7 @@ struct FATDirList {
 	uint8_t		padding[2];
 };
 
-int init_fat(void);
+bool init_fat(void);
 void fat_close(int fd);
 int fat_open(const char *path, int flags);
 uint32_t fat_fsize(int fd);

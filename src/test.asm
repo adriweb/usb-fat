@@ -11,8 +11,11 @@
 	.def	_fat_WriteSector
 	.def	_fat_ValidSector
 
+	.def	_init_fat
 	.def	_end_of_chain_mark
 	.ref	_fat_state
+	.ref	_sector_buff
+	.ref	_fat_fd
 
 saveSScreen		:= $0D0EA1F ; 21945 bytes
 

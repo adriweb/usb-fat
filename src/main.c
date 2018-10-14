@@ -79,7 +79,7 @@ void open_fat_file(void) {
 
     os_line("using fat partition 1.");
 
-    if (init_fat() != 0) {
+    if (init_fat() != true) {
         os_line("invalid fat partition.");
         return;
     }
