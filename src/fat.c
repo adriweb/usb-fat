@@ -65,7 +65,7 @@ struct {
 } fat_state;
 
 struct FATFileDescriptor {
-	int32_t		key;
+	int8_t		key;
 	uint32_t	entry_sector;
 	uint32_t	entry_index;
 	uint32_t	first_cluster;
@@ -162,7 +162,7 @@ bool init_fat();/* {
 }
 */
 
-static void fname_to_fatname(char *name, char *fname) {
+void fname_to_fatname(char *name, char *fname);/* {
 	uint8_t i, j;
 
 	for (i = 0; i < 8 && name[i] != '.' && name[i]; i++)
@@ -188,22 +188,22 @@ static void fname_to_fatname(char *name, char *fname) {
 
 	return;
 }
+*/
 
-
-static uint32_t cluster_to_sector(uint32_t cluster) {
+uint32_t cluster_to_sector(uint32_t cluster);/* {
 	if (!cluster)
 		return 0;
 	return (cluster - 2) * fat_state.cluster_size + fat_state.data_region;
 }
-
-static uint32_t sector_to_cluster(uint32_t sector) {
+*/
+uint32_t sector_to_cluster(uint32_t sector) {
 	if (!sector)
 		return 0;
 	return (sector - fat_state.data_region) / fat_state.cluster_size + 2;
 }
 
 
-static uint32_t next_cluster(uint32_t prev_cluster) {
+uint32_t next_cluster(uint32_t prev_cluster) {
 	uint32_t cluster_pos, cluster_sec;
 
 	if (fat_state.type == FAT_TYPE_FAT16) {
@@ -339,7 +339,7 @@ static uint32_t locate_record(const char *path, unsigned int *record_index, cons
 }
 
 
-static uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old_cluster) {
+uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old_cluster) {
 	uint32_t i, j;
 	uint32_t cluster = 0, avail_cluster;
 	int fat_size, ent_per_sec, eocm, mask, shift;

@@ -21,7 +21,7 @@ void send_char(char n)
 void key_Scan(void);
 unsigned char key_Any(void);
 
-const char *rdtest = "RDTEST.TXT";
+const char *rdtest = "RDTESTAA.TX";
 const char *wrtest = "WRTEST.TXT";
 
 #define WR_SIZE 1048576
@@ -83,9 +83,6 @@ void open_fat_file(void) {
         os_line("invalid fat partition.");
         return;
     }
-    
-    delete_file(wrtest);
-    create_file(0, wrtest, 0);
 
     fd = fat_open(rdtest, O_RDONLY);
     if (fd >= 0) {
@@ -104,7 +101,7 @@ void open_fat_file(void) {
 	sprintf(buf, "ticks: %u", ticks);
         os_line(buf);
     }
-
+/*
     fd = fat_open(wrtest, O_WRONLY);
     if (fd >= 0) {
 
@@ -125,7 +122,7 @@ void open_fat_file(void) {
         fat_set_fsize(wrtest, WR_SIZE);
 
         fat_close(fd);
-    }
+    }*/
 }
 
 void main(void) {

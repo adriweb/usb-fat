@@ -1,4 +1,121 @@
+_cluster_to_sector:
+	pop	de
+	pop	hl
+	dec	sp
+	pop	af
+	dec	sp
+	dec	sp
+	push	hl
+	push	de
+	ld	de,-2
+	add	hl,de
+	adc	a,d
+	ld	c,a
+	ld	a,(_fat_state + 1)
+	jr	c,enter
+	sbc	hl,hl
+	ld	e,l
+	ret
+loop:
+	add	hl,hl
+	rl	c
+enter:
+	rrca
+	jr	nc,loop
+	ld	de,(_fat_state + 20)
+	ld	a,(_fat_state + 20 + 3)
+	add	hl,de
+	adc	a,c
+	ld	e,a
+	ret
 
+_fname_to_fatname:
+	ld	iy,0
+	add	iy,sp
+	ld	de,(iy + 3)	; de = name
+	ld	hl,(iy + 6)	; hl = fname
+	ld	b,0		; for (i = 0; i < 8 && name[i] != '.' && name[i]; i++)
+.loop1:
+	ld	a,b
+	cp	a,8
+	jr	nc,.done1
+	ld	a,(de)
+	cp	a,46		; '.'
+	jr	z,.done1
+	ld	a,(de)
+	or	a,a
+	jr	z,.done1
+	ld	(hl),a
+	inc	de		; i++
+	inc	hl
+	inc	b
+	jr	.loop1
+.done1:
+	ld	a,b		; if (i < 8 && name[i])
+	cp	a,8
+	jr	nc,.elseif
+	ld	a,(de)
+	or	a,a
+	jr	z,.elseif
+
+	ld	a,8		; for (j = i; j < 8; j++)
+.loop2:
+	cp	a,b
+	jr	z,.fillremaining
+	ld	(hl),32		; fname[j] = ' ';
+	inc	hl
+	inc	b
+	jr	.loop2
+.fillremaining:
+	inc	de		; i++;
+
+.loop3456:			; for (; j < 11 && name[i]; j++, i++)
+	ld	a,b
+	cp	a,11
+	jr	nc,darwww
+	ld	a,(de)
+	or	a,a
+	jr	z,.other
+	inc	de
+.store:
+	ld	(hl),a		; fname[j] = name[i];
+	inc	hl
+	inc	b
+	jr	.loop3456
+.other:
+	ld	a,32		; ' '
+	jr	.store
+
+.elseif:
+	ld	a,b		; else if (i == 8 && name[i] == '.')
+	cp	a,8
+	jr	nz,.spacefill
+	ld	a,(de)
+	cp	a,46		; '.'
+	jr	nz,.spacefill
+	jr	.fillremaining
+
+.spacefill:
+	ld	a,11
+.spacefillloop:			; for (; j < 11; j++)
+	cp	a,b
+	jr	z,darwww
+	ld	(hl),32		; fname[j] = ' '
+	inc	hl
+	inc	b
+	jr	.spacefillloop
+
+darwww:
+	ld	hl,(iy + 6)
+	ld	b,12
+.oo:
+	push	bc
+	ld	a,(hl)
+	call	_PutC
+	inc	hl
+	pop	bc
+	djnz	.oo
+	ret
 
 _end_of_chain_mark:
 	pop	de
@@ -169,7 +286,9 @@ l_20:
 	rr	c
 	
 	xor	a,a
-	call	__ladd
+	add	hl,bc			; __ladd
+	adc	a,e
+	ld	e,a
 	ld	(_fat_state + 20),hl
 	ld	a,e
 	ld	(_fat_state + 23),a
@@ -235,26 +354,18 @@ l_20:
 .fsinfo := $ - 3
 	call	write_sector		; write_sector(fsinfo, data);
 l_28:
-	ld	a,0			; for (i = 0; i < max_fd_open; i++)
+	ld	b,3			; for (i = 0; i < max_fd_open; i++)
+	ld	hl,_fat_fd
+	ld	de,26
 l_25:
-	ld	l,a
-	ld	h,29
-	mlt	hl
-	ld	de,_fat_fd
+	ld	(hl),255		; fat_fd[i].key = -1;
 	add	hl,de
-	ld	iy,hl
-	ld	de,16777215
-	ld	(iy + 0),de
-	ld	(iy + 3),255		; fat_fd[i].key = -1;
-	inc	a
+	djnz	l_25
 l_27:
-	cp	a,4
-	jr	nz,l_25
 
 	ld	a,1
 	ld	(_fat_state + 0),a	; fat_state.valid = true;
 	ret				; return 1;
-
 
 ; euhl = sector lba
 read_sector:
@@ -356,8 +467,8 @@ add_fat_partition_lba:
 	push	bc
 	ld	bc, (fat_partition_lba)
 	ld	a, (fat_partition_lba + 3)
-	call	__ladd
-	ld	a, e			; big endian
+	add	hl, bc			; __ladd
+	adc	a, e			; big endian
 	pop	de
 	ld	(de), a
 	dec	sp
@@ -494,17 +605,6 @@ reverse_copy:
 	dec	de
 	djnz	.loop
 	ret
-
-_fat_ValidSector:
-    pop de, hl
-    push    hl, de
-    ld  bc, 510
-    add hl,bc
-    call    test_sector
-    ld  a,0
-    ret z
-    inc a
-    ret
 
 check_sector_magic:
 	ld	hl, xferCBWDataDefault + 510	; offset = signature

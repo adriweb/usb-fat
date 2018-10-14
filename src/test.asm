@@ -9,8 +9,9 @@
 	.def	_fat_Select
 	.def	_fat_ReadSector
 	.def	_fat_WriteSector
-	.def	_fat_ValidSector
 
+	.def	_fname_to_fatname
+	.def	_cluster_to_sector
 	.def	_init_fat
 	.def	_end_of_chain_mark
 	.ref	_fat_state
@@ -20,7 +21,6 @@
 saveSScreen		:= $0D0EA1F ; 21945 bytes
 
 usbbuf			:= saveSScreen
-usbbuf2			:= saveSScreen + 2048
 
 __longjmp                  := 0000098h
 __memchr                   := 000009Ch

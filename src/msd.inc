@@ -1,4 +1,4 @@
-xferCBWDataDefault  := usbbuf2 + 1024
+xferCBWDataDefault  := usbbuf
 
 initMsd:
 	call	initDevice
