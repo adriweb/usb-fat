@@ -504,6 +504,7 @@ void fat_close(int fd) {
 int fat_open(const char *path, int flags) {
 	unsigned int i, index;
 	uint32_t sector;
+	struct FATFileDescriptor *desc;
 
 	if (!fat_state.valid)
 		return -1;
@@ -521,6 +522,9 @@ int fat_open(const char *path, int flags) {
 	if (sector_buff[index * 32 + 11] & 0x10)
 		/* Don't allow opening a directory */
 		return -1;
+
+	desc = &fat_fd[i]; // wtf!
+
 	fat_fd[i].write = flags & O_WRONLY ? true : false;
 	fat_fd[i].entry_sector = sector;
 	fat_fd[i].entry_index = index;
