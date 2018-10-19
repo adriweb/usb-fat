@@ -19,9 +19,7 @@
 	.ref	_sector_buff
 	.ref	_fat_fd
 
-saveSScreen		:= $0D0EA1F ; 21945 bytes
-
-usbbuf			:= saveSScreen
+usbbuf			:= $D40000
 
 __longjmp                  := 0000098h
 __memchr                   := 000009Ch
