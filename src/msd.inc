@@ -273,16 +273,14 @@ msdStatusStall:
 	call	bulkTransfer
 	call	qhReap			; attempt to read csw again
 	or	a,a
-	jr	z,msdCheckValidCsw	; did we stall again?
-	call	msdPerformResetRecovery
-	; something here?
-
+	jr	nz,msdPhaseError
 msdCheckValidCsw:
 	ld	a,(packetCSW+12)
 	or	a,a			; check for good status of transfer
 	ret	z
 	cp	a,2			; check for phase error (we can recover)
 	jp	nz,debugAbort		; handle command fail later
+msdPhaseError:
 	call	msdPerformResetRecovery
 	; something here?
 
