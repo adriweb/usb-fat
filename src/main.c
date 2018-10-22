@@ -24,7 +24,7 @@ unsigned char key_Any(void);
 const char *rdtest = "RDTEST.TXT";
 const char *wrtest = "WRTEST.TXT";
 
-#define WR_SIZE 1048576
+#define WR_SIZE 512
 
 /* cannot use getcsc in usb */
 void wait_user(void) {

@@ -13,6 +13,8 @@ initMsd:
 	ret
 
 scsiInit:
+	ld	a,(ep_in)
+	ld	(reqClrInStall + 4),a
 	ld	hl,scsiInquiry
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
@@ -163,10 +165,32 @@ scsiRequest:
 	or	a,a			; csw packet status
 	ret	nz			; fail if anything other than csw status
 scsiFail:				; should we perform any recovery here?
+	ld	de,reqClrInStall
+	ld	hl,usbbuf
+	ld	iy,(device)
+	call	controlDefaultTransfer
+
 	call	debugStr
 	db	'transmission error.',0
 	call	debugNewLine
 	jp	debugAbort
+
+reqClrInStall:
+	db	$00,$01,$00,$00,$00,$00,$00,$00
+
+scsiOutEpErrPop:
+	pop	hl
+scsiOutEpErr:
+	call	debugHexA
+
+	call	debugAbort
+	ret
+
+scsiInEpErr:
+	call	debugHexA
+	call	debugHexA
+	call	debugAbort
+	ret
 
 scsiReq:
 	ld	(xferCBWData),de
@@ -196,23 +220,37 @@ scsiReq:
 	call	bulkTransfer
 	call	qhReap
 	pop	bc
-	pop	af
 	or	a,a
-	call	nz,msdDeviceEpIn
-	call	z,msdDeviceEpOut
+	jr	nz,scsiOutEpErrPop
+	pop	af
 	sbc	hl,hl
 	adc	hl,bc
 	jr	z,msdCswAck		; no bulk out if 0 length req
 	ld	de,0
 xferCBWData := $ - 3
+	or	a,a
+	jr	z,scsiEpOut
+scsiEpIn:
+	call	msdDeviceEpIn
 	call	bulkTransfer
 	call	qhReap
+	or	a,a
+	jr	nz,scsiInEpErr
+	jr	msdCswAck
+scsiEpOut:
+	call	msdDeviceEpOut
+	call	bulkTransfer
+	call	qhReap
+	or	a,a
+	jr	nz,scsiOutEpErr
 msdCswAck:
 	call	msdDeviceEpIn
 	ld	de,packetCSW
 	ld	bc,packetCSWLen
 	call	bulkTransfer
 	call	qhReap
+	or	a,a
+	jr	nz,scsiInEpErr
 	ld	hl,(packetCBW+4)
 	ld	de,(packetCSW+4)	; check transfer tags
 	xor	a,a
