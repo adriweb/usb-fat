@@ -14,10 +14,8 @@ initMsd:
 
 scsiInit:
 	ld	a,(ep_in)
-	and	a,$0f
 	ld	(reqClrInStall + wIndex),a
 	ld	a,(ep_out)
-	and	a,$0f
 	ld	(reqClrOutStall + wIndex),a
 	ld	hl,scsiInquiry
 	call	scsiDefaultRequest
@@ -129,12 +127,6 @@ scsiWrite10Length:
 scsiWrite10Ctrl:
 	db	$00
 
-reqClrInStall:
-	db	$02,$01,$00,$00,$00,$00,$00,$00
-
-reqClrOutStall:
-	db	$02,$01,$00,$00,$00,$00,$00,$00
-
 ; Input:
 ;  scsiRead10Lba = logical block address
 ;  de -> buffer
@@ -168,15 +160,12 @@ scsiDefaultRequest:
 scsiRequest:
 	push	ix
 	push	iy
-	call	scsiReq
+	call	msdCommandTransport
+	call	msdDataTransport
+	call	msdStatusTransport
 	pop	iy
 	pop	ix
 	ret
-
-scsiReq:
-	call	msdCommandTransport
-	call	msdDataTransport
-	jp	msdStatusTransport
 
 ; ---
 
@@ -247,13 +236,26 @@ msdDataEp := $ - 1
 	ld	de,0
 xferCBWData := $ - 3
 	or	a,a
-	call	z,msdDeviceEpOut
-	call	nz,msdDeviceEpIn
+	jr	z,msdDataOut
+msdDataIn:
+	call	msdDeviceEpIn
 	call	bulkTransfer
 	call	qhReap
-	add	a,a
+	or	a,a
 	ret	z
+	add	a,a
 	call	nz,debugAbort
+	jq	msdClrInStall
+
+msdDataOut:
+	call	msdDeviceEpOut
+	call	bulkTransfer
+	call	qhReap
+	or	a,a
+	ret	z
+	add	a,a
+	call	nz,debugAbort
+	jq	msdClrOutStall
 
 msdStatusTransport:
 	call	msdDeviceEpIn

@@ -48,4 +48,8 @@ reqConfDesc:
 	db	$80,6,0,2,0,0,0,0,0
 reqGetStrDesc:
 	db	$80,6,0,3,0,0,0,1
+reqClrInStall:
+	db	$02,1,0,0,0,0,0,0
+reqClrOutStall:
+	db	$02,1,0,0,0,0,0,0
 
