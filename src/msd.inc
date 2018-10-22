@@ -229,8 +229,8 @@ msdCommandTransport:
 	pop	hl
 	or	a,a
 	ret	z			; check the command was accepted
-	cp	a,$80			; check if stall
-	jp	nz,debugAbort
+	add	a,a			; check if stall
+	call	nz,debugAbort
 	call	msdPerformResetRecovery
 	ld	de,(xferCBWData)
 	ld	hl,0
