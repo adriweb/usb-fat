@@ -221,6 +221,7 @@ msdCommandTransport:
 	ret	z			; check the command was accepted
 	add	a,a			; check if stall
 	call	nz,debugAbort
+.resendCbw:
 	call	msdPerformResetRecovery
 	ld	hl,0
 xferData := $ - 3
@@ -279,10 +280,9 @@ msdCheckValidCsw:
 	or	a,a			; check for good status of transfer
 	ret	z
 	cp	a,2			; check for phase error (we can recover)
-	jp	nz,debugAbort		; handle command fail later
+	call	nz,debugAbort		; handle command fail later
 msdPhaseError:
-	call	msdPerformResetRecovery
-	; something here?
+	jp	msdCommandTransport.resendCbw
 
 ; Input:
 ;  hl = ptr in config
@@ -304,7 +304,7 @@ findDescriptor:
 	push	hl
 	pop	iy
 	ld	c,(hl)			; length of descriptor
-	cp	a,(iy+1)		; bDescriptorType == 4
+	cp	a,(iy + bDescriptorType)
 	jr	z,foundDescriptor
 	add	hl,bc
 	jr	findDescriptor
@@ -422,6 +422,8 @@ msdMaxLun:
 msdReset:
 	or	a,a
 	sbc	hl,hl
+	ld	(packetCBW + 4),hl
+	ld	(packetCBW + 5),hl
 	ld	de,packetMSDReset
 	jp	setup
 
