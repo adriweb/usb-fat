@@ -160,9 +160,17 @@ scsiDefaultRequest:
 scsiRequest:
 	push	ix
 	push	iy
+	ld	(xferData),hl
+	ld	(xferCBWData),de
+	jr	.start
+.resendCbw:
+	ld	hl,(xferData)
+	ld	de,(xferCBWData)
+.start:
 	call	msdCommandTransport
 	call	msdDataTransport
 	call	msdStatusTransport
+	jr	nz,.resendCbw
 	pop	iy
 	pop	ix
 	ret
@@ -186,9 +194,6 @@ msdClrStall:
 ; hl = data to transfer
 ; de = buffer to recieve
 msdCommandTransport:
-	ld	(xferData),hl
-	ld	(xferCBWData),de
-.ready
 	ld	iy,packetCBW
 	ld	a,(hl)
 	ld	(msdDataEp),a
@@ -225,7 +230,7 @@ msdCommandTransport:
 	call	msdPerformResetRecovery
 	ld	hl,0
 xferData := $ - 3
-	jr	msdCommandTransport.ready
+	jr	msdCommandTransport
 
 ; bc = length of transfer
 msdDataTransport:
@@ -274,15 +279,15 @@ msdStatusStall:
 	call	bulkTransfer
 	call	qhReap			; attempt to read csw again
 	or	a,a
-	jr	nz,msdPhaseError
+	ret	nz
 msdCheckValidCsw:
 	ld	a,(packetCSW+12)
 	or	a,a			; check for good status of transfer
 	ret	z
-	cp	a,2			; check for phase error (we can recover)
-	call	nz,debugAbort		; handle command fail later
+	cp	a,1			; check for phase error (we can recover)
+	call	z,debugAbort		; handle command fail later
 msdPhaseError:
-	jp	msdCommandTransport.resendCbw
+	ret
 
 ; Input:
 ;  hl = ptr in config
