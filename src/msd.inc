@@ -14,7 +14,11 @@ initMsd:
 
 scsiInit:
 	ld	a,(ep_in)
+	and	a,$0f
 	ld	(reqClrInStall + 4),a
+	ld	a,(ep_out)
+	and	a,$0f
+	ld	(reqClrOutStall + 4),a
 	ld	hl,scsiInquiry
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
@@ -125,6 +129,12 @@ scsiWrite10Length:
 scsiWrite10Ctrl:
 	db	$00
 
+reqClrInStall:
+	db	$02,$01,$00,$00,$00,$00,$00,$00
+
+reqClrOutStall:
+	db	$01,$01,$00,$00,$00,$00,$00,$00
+
 ; Input:
 ;  scsiRead10Lba = logical block address
 ;  de -> buffer
@@ -175,9 +185,6 @@ scsiFail:				; should we perform any recovery here?
 	call	debugNewLine
 	jp	debugAbort
 
-reqClrInStall:
-	db	$00,$01,$00,$00,$00,$00,$00,$00
-
 scsiOutEpErrPop:
 	pop	hl
 scsiOutEpErr:
@@ -190,6 +197,8 @@ scsiInEpErr:
 	call	debugHexA
 	call	debugHexA
 	call	debugAbort
+	ret
+scsiEpErr:
 	ret
 
 scsiReq:
@@ -263,7 +272,10 @@ msdCswAck:
 	ret	nz			; technically should check for 0x53 too
 	ld	a,(packetCSW+12)
 	or	a,a			; check for good status of transfer
-	ret
+	ret	z
+	cp	a,2			; check for phase error (we can recover)
+	jr	z,scsiEpErr
+	jp	debugAbort		; handle command fail later
 
 ; Input:
 ;  hl = ptr in config
