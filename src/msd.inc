@@ -245,9 +245,13 @@ msdDataIn:
 	call	qhReap
 	or	a,a
 	ret	z
-	add	a,a
-	call	nz,debugAbort
+	cp	a,$80
+	jr	nz,wut
 	jq	msdClrInStall
+
+wut:
+	call	debugHexA
+	call	debugAbort
 
 msdDataOut:
 	call	msdDeviceEpOut
