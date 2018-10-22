@@ -281,11 +281,15 @@ msdCheckValidCsw:
 	or	a,a			; check for good status of transfer
 	jr	nz,msdInvalidCsw
 msdValidCsw:
-	ld	hl,(xferDataLen)	; buffer += old_length - residue, new_length = residue
-	ld	de,(packetCSW + 8)
+	ld	hl,(packetCSW + 8)
+	add	hl,de
 	or	a,a
 	sbc	hl,de
-	ret	z			; if length == 0, success
+	ret	z			; if residue == 0, success
+	ex	de,hl
+	ld	hl,(xferDataLen)	; buffer += old_length - residue, new_length = residue
+	or	a,a
+	sbc	hl,de
 	ld	(xferDataLen),de
 	ld	de,(xferDataPtr)
 	add	hl,de
