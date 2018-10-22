@@ -283,8 +283,14 @@ msdStatusStall:
 msdCheckValidCsw:
 	ld	a,(packetCSW+12)
 	or	a,a			; check for good status of transfer
-	ret	z
-	cp	a,1			; check for phase error (we can recover)
+	jr	nz,msdInvalidCsw
+msdValidCsw:
+	
+	; something something
+	; buffer += residue, length -= residue
+
+msdInvalidCsw:
+	dec	a			; check for phase error (we can recover)
 	call	z,debugAbort		; handle command fail later
 msdPhaseError:
 	ret
