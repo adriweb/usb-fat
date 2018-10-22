@@ -1,4 +1,4 @@
-xferCBWDataDefault  := usbbuf
+xferDataPtrDefault  := usbbuf
 
 initMsd:
 	call	initDevice
@@ -133,7 +133,7 @@ scsiWrite10Ctrl:
 ; Output:
 ;  buffer loaded
 scsiRequestDefaultRead:
-	ld	de,xferCBWDataDefault
+	ld	de,xferDataPtrDefault
 scsiRequestRead:
 	ld	hl,scsiRead10
 	jr	scsiRequest
@@ -144,7 +144,7 @@ scsiRequestRead:
 ; Output:
 ;  buffer loaded
 scsiRequestDefaultWrite:
-	ld	de,xferCBWDataDefault
+	ld	de,xferDataPtrDefault
 scsiRequestWrite:
 	ld	hl,scsiWrite10
 	jr	scsiRequest
@@ -156,17 +156,21 @@ scsiRequestWrite:
 ;   z = success
 ;  nz = failure
 scsiDefaultRequest:
-	ld	de,xferCBWDataDefault
+	ld	de,xferDataPtrDefault
 scsiRequest:
 	push	ix
 	push	iy
-	ld	(xferData),hl
-	ld	(xferCBWData),de
-	jr	.start
+	ld	(xferDataPtr),de
+	ld	a,(hl)
+	ld	(xferDataEp),a
+	inc	hl
+	ld	bc,(hl)
+	ld	(xferDataLen),bc
+	inc	hl
+	inc	hl
+	inc	hl
+	ld	(xferCdbPtr),hl
 .resendCbw:
-	ld	hl,(xferData)
-	ld	de,(xferCBWData)
-.start:
 	call	msdCommandTransport
 	call	msdDataTransport
 	call	msdStatusTransport
@@ -194,53 +198,45 @@ msdClrStall:
 ; hl = data to transfer
 ; de = buffer to recieve
 msdCommandTransport:
+	ld	hl,0
+xferCdbPtr := $ - 3
 	ld	iy,packetCBW
-	ld	a,(hl)
-	ld	(msdDataEp),a
+	ld	a,(xferDataEp)
 	ld	(iy+12),a		; direction flag
-	push	hl
-	inc	hl
-	ld	bc,(hl)			; get the length -- only use 3/4 bytes
-	ld	(iy+8),bc		; i/o length
-	push	bc
-	inc	hl
-	inc	hl
-	inc	hl			; move past length
+	ld	bc,(xferDataLen)	; get the length -- only use 3/4 bytes
+	ld	(iy + 8),bc		; i/o length
 	ld	bc,0
 	ld	c,(hl)			; cdb length
 	inc	c
-	lea	de,iy+14		; cdb location
+	lea	de,iy + 14		; cdb location
 	ldir
-	ld	hl,(iy+4)		; increment tag
+	ld	hl,(iy + 4)		; increment tag
 	inc	hl
-	ld	(iy+4),hl
-	push	iy			; iy -> packetCBW
+	ld	(iy + 4),hl
 	call	msdDeviceEpOut
-	pop	de			; de -> packetCBW
+	ld	de,packetCBW		; de -> packetCBW
 	ld	bc,packetCBWLen
 	call	bulkTransfer
 	call	qhReap
-	pop	bc
-	pop	hl
 	or	a,a
 	ret	z			; check the command was accepted
 	add	a,a			; check if stall
 	call	nz,debugAbort
 .resendCbw:
 	call	msdPerformResetRecovery
-	ld	hl,0
-xferData := $ - 3
 	jr	msdCommandTransport
 
 ; bc = length of transfer
 msdDataTransport:
-	ld	a,0
-msdDataEp := $ - 1
+	ld	bc,0
+xferDataLen := $ - 3
 	sbc	hl,hl
 	adc	hl,bc
 	ret	z			; no bulk if 0 length req
+	ld	a,0
+xferDataEp := $ - 1
 	ld	de,0
-xferCBWData := $ - 3
+xferDataPtr := $ - 3
 	or	a,a
 	jr	z,msdDataOut
 msdDataIn:
@@ -285,10 +281,18 @@ msdCheckValidCsw:
 	or	a,a			; check for good status of transfer
 	jr	nz,msdInvalidCsw
 msdValidCsw:
-	
-	; something something
-	; buffer += residue, length -= residue
-
+	ld	hl,(xferDataLen)	; buffer += old_length - residue, new_length = residue
+	ld	de,(packetCSW + 8)
+	or	a,a
+	sbc	hl,de
+	ret	z			; if length == 0, success
+	ld	(xferDataLen),de
+	ld	de,(xferDataPtr)
+	add	hl,de
+	ld	(xferDataPtr),hl
+	xor	a,a
+	inc	a
+	ret				; send the next cbw
 msdInvalidCsw:
 	dec	a			; check for phase error (we can recover)
 	call	z,debugAbort		; handle command fail later

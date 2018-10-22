@@ -498,7 +498,7 @@ msd_mbr_parse:
 	ld	(scsiRead10Lba), hl
 	ld	(scsiRead10Lba + 3), a
 	call	scsiRequestDefaultRead		; read sector
-	ld	hl, (xferCBWDataDefault)
+	ld	hl, (xferDataPtrDefault)
 	ld	de, ($90 shl 16) or ($58 shl 8) or ($eb shl 0)
 	or	a, a
 	sbc	hl, de
@@ -539,7 +539,7 @@ find_fat32:
 	add	hl, sp
 	ld	sp, hl
 	ex	de, hl
-	ld	hl, xferCBWDataDefault + 446 + 4
+	ld	hl, xferDataPtrDefault + 446 + 4
 	ld	bc, 64
 	ldir					; copy the current partition table to the stack
 	xor	a, a
@@ -618,7 +618,7 @@ fat32_ptrs := $ - 3
 	ld	de, scsiRead10Lba + 3
 	call	reverse_copy
 ;	call	scsiRequestDefaultRead		; read sector
-;	ld	hl,xferCBWDataDefault
+;	ld	hl,xferDataPtrDefault
 ;	call	debugHexBlockHL
 ;	db	16
 ;	call	debugNewLine
@@ -653,7 +653,7 @@ reverse_copy:
 	ret
 
 check_sector_magic:
-	ld	hl, xferCBWDataDefault + 510	; offset = signature
+	ld	hl, xferDataPtrDefault + 510	; offset = signature
 test_sector:
 	ld	a, (hl)
 	cp	a, $55
