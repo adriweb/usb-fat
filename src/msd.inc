@@ -180,19 +180,19 @@ scsiReq:
 
 ; ---
 
-msdOutEpClrStall:
-	ld	de,reqClrInStall
-	jr	msdClrStall
-msdInEpClrStall:
+msdClrOutStall:
 	ld	de,reqClrOutStall
+	jr	msdClrStall
+msdClrInStall:
+	ld	de,reqClrInStall
 msdClrStall:
 	ld	hl,usbbuf
 	ld	iy,(device)
 	jp	controlDefaultTransfer
 msdPerformResetRecovery:
 	call	msdReset		; perform reset recovery
-	call	msdInEpClrStall
-	jp	msdOutEpClrStall
+	call	msdClrInStall
+	jp	msdClrOutStall
 
 ; hl = data to transfer
 ; de = buffer to recieve
@@ -267,7 +267,7 @@ msdStatusTransport:
 	or	a,a
 	jr	z,msdCheckValidCsw
 msdStatusStall:
-	call	msdInEpClrStall		; clear stall
+	call	msdClrInStall		; clear stall
 	call	msdDeviceEpIn
 	ld	de,packetCSW
 	ld	bc,packetCSWLen
