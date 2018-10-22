@@ -38,7 +38,7 @@ scsiInit:
 	ld	de,512
 	or	a,a
 	sbc	hl,de
-	jp	nz,scsiFail		; ensure sector size is 512 bytes
+	jp	nz,debugAbort		; ensure sector size is 512 bytes
 	ret
 
 _msd_KeepAlive:
@@ -171,42 +171,38 @@ scsiRequest:
 	call	scsiReq
 	pop	iy
 	pop	ix
-	ret	z
-	or	a,a			; csw packet status
-	ret	nz			; fail if anything other than csw status
-scsiFail:				; should we perform any recovery here?
-	ld	de,reqClrInStall
-	ld	hl,usbbuf
-	ld	iy,(device)
-	call	controlDefaultTransfer
-
-	call	debugStr
-	db	'transmission error.',0
-	call	debugNewLine
-	jp	debugAbort
-
-scsiOutEpErrPop:
-	pop	hl
-scsiOutEpErr:
-	call	debugHexA
-
-	call	debugAbort
-	ret
-
-scsiInEpErr:
-	call	debugHexA
-	call	debugHexA
-	call	debugAbort
-	ret
-scsiEpErr:
 	ret
 
 scsiReq:
-	ld	(xferCBWData),de
+	call	msdCommandTransport
+	call	msdDataTransport
+	jp	msdStatusTransport
+
+; ---
+
+msdOutEpClrStall:
+	ld	de,reqClrInStall
+	jr	msdClrStall
+msdInEpClrStall:
+	ld	de,reqClrOutStall
+msdClrStall:
+	ld	hl,usbbuf
+	ld	iy,(device)
+	jp	controlDefaultTransfer
+msdPerformResetRecovery:
+	call	msdReset		; perform reset recovery
+	call	msdInEpClrStall
+	jp	msdOutEpClrStall
+
+; hl = data to transfer
+; de = buffer to recieve
+msdCommandTransport:
 	ld	iy,packetCBW
 	ld	a,(hl)
+	ld	(msdDataEp),a
+	ld	(xferCBWData),de
 	ld	(iy+12),a		; direction flag
-	push	af
+	push	hl
 	inc	hl
 	ld	bc,(hl)			; get the length -- only use 3/4 bytes
 	ld	(iy+8),bc		; i/o length
@@ -229,53 +225,67 @@ scsiReq:
 	call	bulkTransfer
 	call	qhReap
 	pop	bc
+	pop	hl
 	or	a,a
-	jr	nz,scsiOutEpErrPop
-	pop	af
+	ret	z			; check the command was accepted
+	call	msdPerformResetRecovery
+	; something here?
+
+; bc = length of transfer
+msdDataTransport:
+	ld	a,0
+msdDataEp := $ - 1
 	sbc	hl,hl
 	adc	hl,bc
-	jr	z,msdCswAck		; no bulk out if 0 length req
+	ret	z			; no bulk if 0 length req
 	ld	de,0
 xferCBWData := $ - 3
 	or	a,a
-	jr	z,scsiEpOut
-scsiEpIn:
+	jr	z,msdDataOut
+msdDataIn:
 	call	msdDeviceEpIn
 	call	bulkTransfer
 	call	qhReap
 	or	a,a
-	jr	nz,scsiInEpErr
-	jr	msdCswAck
-scsiEpOut:
+	ret	z
+	; something here?
+
+msdDataOut:
 	call	msdDeviceEpOut
 	call	bulkTransfer
 	call	qhReap
 	or	a,a
-	jr	nz,scsiOutEpErr
-msdCswAck:
+	ret	z
+	; something here?
+
+msdStatusTransport:
 	call	msdDeviceEpIn
 	ld	de,packetCSW
 	ld	bc,packetCSWLen
 	call	bulkTransfer
 	call	qhReap
 	or	a,a
-	jr	nz,scsiInEpErr
-	ld	hl,(packetCBW+4)
-	ld	de,(packetCSW+4)	; check transfer tags
-	xor	a,a
-	sbc	hl,de
-	ret	nz
-	ld	hl,(packetCSW)
-	ld	de,(packetCBW)
-	xor	a,a
-	sbc	hl,de
-	ret	nz			; technically should check for 0x53 too
+	jr	z,msdCheckValidCsw
+msdStatusStall:
+	call	msdInEpClrStall		; clear stall
+	call	msdDeviceEpIn
+	ld	de,packetCSW
+	ld	bc,packetCSWLen
+	call	bulkTransfer
+	call	qhReap			; attempt to read csw again
+	or	a,a
+	jr	z,msdCheckValidCsw	; did we stall again?
+	call	msdPerformResetRecovery
+	; something here?
+
+msdCheckValidCsw:
 	ld	a,(packetCSW+12)
 	or	a,a			; check for good status of transfer
 	ret	z
 	cp	a,2			; check for phase error (we can recover)
-	jr	z,scsiEpErr
-	jp	debugAbort		; handle command fail later
+	jp	nz,debugAbort		; handle command fail later
+	call	msdPerformResetRecovery
+	; something here?
 
 ; Input:
 ;  hl = ptr in config
