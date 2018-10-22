@@ -133,7 +133,7 @@ reqClrInStall:
 	db	$02,$01,$00,$00,$00,$00,$00,$00
 
 reqClrOutStall:
-	db	$01,$01,$00,$00,$00,$00,$00,$00
+	db	$02,$01,$00,$00,$00,$00,$00,$00
 
 ; Input:
 ;  scsiRead10Lba = logical block address
