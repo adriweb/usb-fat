@@ -15,10 +15,10 @@ initMsd:
 scsiInit:
 	ld	a,(ep_in)
 	and	a,$0f
-	ld	(reqClrInStall + 4),a
+	ld	(reqClrInStall + wIndex),a
 	ld	a,(ep_out)
 	and	a,$0f
-	ld	(reqClrOutStall + 4),a
+	ld	(reqClrOutStall + wIndex),a
 	ld	hl,scsiInquiry
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
@@ -180,6 +180,10 @@ scsiReq:
 
 ; ---
 
+msdPerformResetRecovery:
+	call	msdReset		; perform reset recovery
+	call	msdClrInStall
+;	jr	msdClrOutStall
 msdClrOutStall:
 	ld	de,reqClrOutStall
 	jr	msdClrStall
@@ -189,10 +193,6 @@ msdClrStall:
 	ld	hl,usbbuf
 	ld	iy,(device)
 	jp	controlDefaultTransfer
-msdPerformResetRecovery:
-	call	msdReset		; perform reset recovery
-	call	msdClrInStall
-	jp	msdClrOutStall
 
 ; hl = data to transfer
 ; de = buffer to recieve
