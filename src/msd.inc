@@ -247,22 +247,13 @@ msdDataEp := $ - 1
 	ld	de,0
 xferCBWData := $ - 3
 	or	a,a
-	jr	z,msdDataOut
-msdDataIn:
-	call	msdDeviceEpIn
+	call	z,msdDeviceEpOut
+	call	nz,msdDeviceEpIn
 	call	bulkTransfer
 	call	qhReap
-	or	a,a
+	add	a,a
 	ret	z
-	; something here?
-
-msdDataOut:
-	call	msdDeviceEpOut
-	call	bulkTransfer
-	call	qhReap
-	or	a,a
-	ret	z
-	; something here?
+	call	nz,debugAbort
 
 msdStatusTransport:
 	call	msdDeviceEpIn
