@@ -197,11 +197,12 @@ msdClrStall:
 ; hl = data to transfer
 ; de = buffer to recieve
 msdCommandTransport:
+	ld	(xferData),hl
+	ld	(xferCBWData),de
+.ready
 	ld	iy,packetCBW
 	ld	a,(hl)
 	ld	(msdDataEp),a
-	ld	(xferData),hl
-	ld	(xferCBWData),de
 	ld	(iy+12),a		; direction flag
 	push	hl
 	inc	hl
@@ -232,12 +233,9 @@ msdCommandTransport:
 	add	a,a			; check if stall
 	call	nz,debugAbort
 	call	msdPerformResetRecovery
-	ld	de,(xferCBWData)
 	ld	hl,0
 xferData := $ - 3
-	jr	msdCommandTransport
-
-	; something here?
+	jr	msdCommandTransport.ready
 
 ; bc = length of transfer
 msdDataTransport:
