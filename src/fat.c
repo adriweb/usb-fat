@@ -138,7 +138,7 @@ bool init_fat();/* {
 	} else {
 		fat_state.fat_size = GET32(data + 36);
 	}
-	
+
 	fat_state.fat_pos = reserved_sectors;
 	fat_state.root_dir_pos = fat_state.fat_pos + fat_state.fat_size * 2;
 	fat_state.data_region = fat_state.root_dir_pos + GET16(data + 17) * 32 / 512;
@@ -146,7 +146,7 @@ bool init_fat();/* {
 		fat_state.data_region = fat_state.root_dir_pos;
 		fat_state.root_dir_pos = fat_state.fat_pos + fat_state.fat_size * 2 + fat_state.cluster_size * (GET32(data + 44) - 2);
 
-		/* Invalidate free space counter 
+		/* Invalidate free space counter
 		fsinfo = GET16(data + 48);
 		read_sector(fsinfo, data);
 		if (GET32(data + 0) == 0x41615252 && GET16(data + 510) == 0xAA55) {
@@ -323,7 +323,7 @@ static uint32_t locate_record(const char *path, unsigned int *record_index, cons
 				goto found_component;
 			}
 		}
-		
+
 		if (!recurse) {	/* Don't cross cluster boundary for root directory */
 			if (fat_state.type == FAT_TYPE_FAT16) {
 				cur_sector++;	/* Lets just cross our fingers and hope we don't overrun */
@@ -345,7 +345,7 @@ uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old
 	uint32_t i, j;
 	uint32_t cluster = 0, avail_cluster;
 	int fat_size, ent_per_sec, eocm, mask, shift;
-	
+
 	if (fat_state.type == FAT_TYPE_FAT16) {
 		fat_size = 2;
 		ent_per_sec = 256;
@@ -387,7 +387,7 @@ uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old
 			}
 		}
 	}
-	
+
 	allocated:
 	if (!old_cluster) {
 		read_sector(entry_sector, sector_buff);
@@ -400,7 +400,7 @@ uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old
 }
 
 
-static uint32_t do_alloc_entry(uint32_t entry_sector, uint32_t entry_index, uint32_t prev_cluster) {
+uint32_t do_alloc_entry(uint32_t entry_sector, uint32_t entry_index, uint32_t prev_cluster);/* {
 	uint32_t sector;
 	sector = cluster_to_sector(alloc_cluster(entry_sector, entry_index, prev_cluster));
 	sector_buff[0] = 0xE5;
@@ -410,7 +410,7 @@ static uint32_t do_alloc_entry(uint32_t entry_sector, uint32_t entry_index, uint
 	write_sector(sector, sector_buff);
 	return sector;
 }
-
+*/
 
 static uint32_t alloc_entry(uint32_t parent_entry_sector, uint32_t parent_entry_index, uint32_t first_cluster, unsigned int *index) {
 	unsigned int i, j;
@@ -493,7 +493,7 @@ static uint32_t alloc_entry_root(unsigned int *index) {
 
 void fat_close(int8_t fd);/* {
 	uint8_t i;
-	
+
 	for (i = 0; i < MAX_FD_OPEN; i++)
 		if (fat_fd[i].key == fd) {
 			fat_fd[i].key = -1;
@@ -516,7 +516,7 @@ int8_t fat_open(const char *path, int flags) {
 
 	if (i == MAX_FD_OPEN)
 		return -1;
-	
+
 	if (!(sector = locate_record(path, &index, NULL)))
 		return -1;
 	read_sector(sector, sector_buff);
@@ -546,7 +546,7 @@ int8_t fat_open(const char *path, int flags) {
 
 uint32_t fat_fsize(int8_t fd);/* {
 	uint8_t i;
-	
+
 	if (fd < 0)
 		return 0;
 	for (i = 0; i < MAX_FD_OPEN; i++)
@@ -589,7 +589,7 @@ bool fat_read_sect(int8_t fd) {
 	if (desc->fpos == desc->file_size)
 		return false;
 	sector = cluster_to_sector(desc->current_cluster) + ((desc->fpos >> 9) % fat_state.cluster_size);
-	
+
 	desc->fpos += 512;
 	if (desc->file_size < desc->fpos)
 		desc->fpos = desc->file_size & (~0x1FF);
@@ -599,7 +599,7 @@ bool fat_read_sect(int8_t fd) {
 		if (!desc->current_cluster && desc->write)
 			desc->current_cluster = alloc_cluster(desc->entry_sector, desc->entry_index, old_cluster);
 	}
-	
+
 	read_sector(sector, sector_buff);
 
 	return true;
@@ -740,7 +740,7 @@ bool create_file(char *path, char *name, uint8_t attrib) {
 	fname_to_fatname(name, (char *) &sector_buff[index32]);
 	sector_buff[index32 + 11] = attrib;
 	write_sector(sector, sector_buff);
-	
+
 	if (attrib & 0x10) {
 		pindex = index;
 		sector = alloc_entry(sector, pindex, 0, &index);
@@ -754,7 +754,7 @@ bool create_file(char *path, char *name, uint8_t attrib) {
 		SET16(sector_buff + (index32 + 26), cluster & 0xFFFF);
 		sector_buff[index32 + 11] = 0x10;
 		write_sector(sector, sector_buff);
-		
+
 		sector = alloc_entry(sector, pindex, cluster, &index);
 		read_sector(sector, sector_buff);
                 index32 = index * 32;
@@ -856,7 +856,7 @@ int fat_dirlist(const char *path, struct FATDirList *list, int size, int skip) {
 						break;
 					list[found].filename[k] = sector_buff[j * 32 + k];
 				}
-				
+
 				if (sector_buff[j * 32 + 8] != ' ') {
 					list[found].filename[k] = '.';
 					k++;
@@ -867,22 +867,21 @@ int fat_dirlist(const char *path, struct FATDirList *list, int size, int skip) {
 						break;
 					list[found].filename[k] = sector_buff[j * 32 + 8 + l];
 				}
-				
+
 				list[found].filename[k] = 0;
 
 				list[found].attrib = sector_buff[j * 32 + 11];
 				found++;
 			}
-			
+
 		}
-		
+
 		if (root && fat_state.type == FAT_TYPE_FAT16) {
 			sector += fat_state.cluster_size;
 		} else {
 			if (!(cluster = next_cluster(cluster)))
 				return found;
-			sector = cluster_to_sector(cluster);	
+			sector = cluster_to_sector(cluster);
 		}
 	}
 }
-

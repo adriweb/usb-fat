@@ -12,6 +12,7 @@
 	.def	_fat_fsize
 	.def	_fat_ftell
 	.def	_fat_close
+	.def	_do_alloc_entry
 
 	.def	_next_cluster
 	.def	_fname_to_fatname
@@ -20,6 +21,7 @@
 	.def	_end_of_chain_mark
 	.ref	_fat_state
 	.ref	_sector_buff
+	.ref	_alloc_cluster
 	.ref	_fat_fd
 	.ref	_exit
 
@@ -453,4 +455,3 @@ include 'host.inc'
 include 'usb.inc'
 include 'msd.inc'
 include 'fat.inc'
-

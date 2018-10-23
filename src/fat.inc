@@ -249,7 +249,7 @@ _init_fat:
 	jr	nc,.fatvalid
 	xor	a,a			; return 0;
 	ret
-.fatvalid:					; else if (fat_state.clusters < 65525)
+.fatvalid:				; else if (fat_state.clusters < 65525)
 	ld	a,(_fat_state + 7)
 	ld	e,a
 	ld	hl,(_fat_state + 4)
@@ -329,7 +329,7 @@ _init_fat:
 	rr	c
 	srl	b
 	rr	c
-	
+
 	xor	a,a
 	add	hl,bc			; __ladd
 	adc	a,e
@@ -403,13 +403,60 @@ _init_fat:
 	ld	hl,_fat_fd
 	ld	de,26
 .setkeys:
-	ld	(hl),255		; fat_fd[i].key = -1;
+	ld	(hl),-1			; fat_fd[i].key = -1;
 	add	hl,de
 	djnz	.setkeys
 
 	ld	a,1
 	ld	(_fat_state + 0),a	; fat_state.valid = true;
 	ret				; return 1;
+
+_do_alloc_entry:
+	call	__frameset0
+	ld	c,(ix+21)
+	ld	b,0
+	push	bc
+	ld	bc,(ix+18)
+	push	bc
+	ld	c,(ix+15)
+	ld	b,0
+	push	bc
+	ld	bc,(ix+12)
+	push	bc
+	ld	c,(ix+9)
+	ld	b,0
+	push	bc
+	ld	bc,(ix+6)
+	push	bc
+	call	_alloc_cluster		; sector = cluster_to_sector(alloc_cluster(entry_sector, entry_index, prev_cluster));
+	pop	bc
+	pop	bc
+	pop	bc
+	pop	bc
+	pop	bc
+	pop	bc			; improve this when _alloc_cluster becomes assembly call style
+	ld	d,0
+	push	de
+	push	hl
+	call	_cluster_to_sector
+	pop	bc
+	pop	bc			; improve this when _cluster_to_sector becomes assembly call style
+					; sector = euhl
+	ld	iy,(_sector_buff)
+	ld	(iy +  0),$e5		; sector_buff[0] = 0xe5;
+	ld	(iy + 11),$00		; sector_buff[11] = 0;
+	ld	(iy + 32),$00		; sector_buff[32] = 0;
+	ld	(iy + 43),$00		; sector_buff[32 + 11] = 0;
+
+	push	de
+	push	hl
+	call	write_sector
+	pop	hl
+	pop	de			; return sector;
+
+	ld	sp,ix
+	pop	ix
+	ret
 
 _fat_fsize:
 	pop	de
@@ -446,7 +493,7 @@ fatfindfd:
 	jp	p,.valid
 .ret0:
 	pop	de			; pop return
-	or	a,a
+	xor	a,a
 	sbc	hl,hl			; if (fd < 0) return 0;
 	ld	e,0
 	ret
@@ -717,4 +764,3 @@ test_sector:
 
 fat_partition_lba:
 	db	0,0,0,0
-
