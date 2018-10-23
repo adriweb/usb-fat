@@ -217,7 +217,8 @@ xferCdbPtr := $ - 3
 	ld	de,packetCBW		; de -> packetCBW
 	ld	bc,packetCBWLen
 	call	bulkTransfer
-	call	qhReap
+	ld	b,0
+	call	qhRetry
 	or	a,a
 	ret	z			; check the command was accepted
 	add	a,a			; check if stall
@@ -242,7 +243,8 @@ xferDataPtr := $ - 3
 msdDataIn:
 	call	msdDeviceEpIn
 	call	bulkTransfer
-	call	qhReap
+	ld	b,0
+	call	qhRetry
 	or	a,a
 	ret	z
 	cp	a,$80
@@ -256,7 +258,8 @@ wut:
 msdDataOut:
 	call	msdDeviceEpOut
 	call	bulkTransfer
-	call	qhReap
+	ld	b,0
+	call	qhRetry
 	or	a,a
 	ret	z
 	add	a,a
@@ -330,7 +333,8 @@ msdStatusXfer:
 	ld	de,packetCSW
 	ld	bc,packetCSWLen
 	call	bulkTransfer
-	jp	qhReap
+	ld	b,0
+	jp	qhRetry
 
 ; Input:
 ;  hl = ptr in config
