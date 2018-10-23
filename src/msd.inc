@@ -303,9 +303,14 @@ msdValidCsw:
 	ret				; send the next cbw
 msdInvalidCsw:
 	dec	a			; check for phase error (we can recover)
-	call	z,debugAbort		; handle command fail later
+	jr	z,msdSenseError		; handle command fail
 msdPhaseError:
+	call	msdPerformResetRecovery
+	xor	a,a
+	inc	a
 	ret
+msdSenseError:
+	call	debugAbort
 
 ; Input:
 ;  hl = ptr in config
