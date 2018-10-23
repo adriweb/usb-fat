@@ -307,12 +307,21 @@ msdPhaseError:
 	inc	a
 	ret
 msdSenseError:
+	ld	hl,msdSenseCount
+	or	a,(hl)
+	call	nz,abort
+	inc	(hl)
 	ld	de,xferDataPtrSense
 	ld	hl,scsiReqestSense
 	call	scsiRequest
+	xor	a,a
+	ld	(msdSenseCount),a
 	ld	a,(xferDataPtrSense + 2)
 	call	debugHexA
-	call	debugAbort
+	ret
+
+msdSenseCount:
+	db	0
 
 msdStatusXfer:
 	call	msdDeviceEpIn
