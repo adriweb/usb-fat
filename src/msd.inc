@@ -264,22 +264,22 @@ msdDataOut:
 	jq	msdClrOutStall
 
 msdStatusTransport:
-	call	msdDeviceEpIn
-	ld	de,packetCSW
-	ld	bc,packetCSWLen
-	call	bulkTransfer
-	call	qhReap
+	call	msdStatusXfer
 	or	a,a
 	jr	z,msdCheckValidCsw
+	add	a,a
+	call	nz,debugAbort
 msdStatusStall:
 	call	msdClrInStall		; clear stall
-	call	msdDeviceEpIn
-	ld	de,packetCSW
-	ld	bc,packetCSWLen
-	call	bulkTransfer
-	call	qhReap			; attempt to read csw again
+	call	msdStatusXfer	; attempt to read csw again
 	or	a,a
-	ret	nz
+	jr	z,msdCheckValidCsw
+	add	a,a
+	call	nz,debugAbort
+	call	msdPerformResetRecovery
+	xor	a,a
+	inc	a
+	ret
 msdCheckValidCsw:
 	ld	a,(packetCSW+12)
 	or	a,a			; check for good status of transfer
@@ -311,6 +311,13 @@ msdPhaseError:
 	ret
 msdSenseError:
 	call	debugAbort
+
+msdStatusXfer:
+	call	msdDeviceEpIn
+	ld	de,packetCSW
+	ld	bc,packetCSWLen
+	call	bulkTransfer
+	jp	qhReap
 
 ; Input:
 ;  hl = ptr in config
