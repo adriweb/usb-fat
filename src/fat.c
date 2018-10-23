@@ -491,17 +491,17 @@ static uint32_t alloc_entry_root(unsigned int *index) {
 }
 
 
-void fat_close(int fd) {
-	int i;
+void fat_close(int8_t fd);/* {
+	uint8_t i;
 	
 	for (i = 0; i < MAX_FD_OPEN; i++)
 		if (fat_fd[i].key == fd) {
 			fat_fd[i].key = -1;
-			/* TODO: Write access/modify/stuff */
+			// TODO: Write access/modify/stuff
 			return;
 		}
 }
-
+*/
 
 int8_t fat_open(const char *path, int flags) {
 	unsigned int i, index;
@@ -544,8 +544,8 @@ int8_t fat_open(const char *path, int flags) {
 }
 
 
-uint32_t fat_fsize(int fd) {
-	int i;
+uint32_t fat_fsize(int8_t fd);/* {
+	uint8_t i;
 	
 	if (fd < 0)
 		return 0;
@@ -556,10 +556,10 @@ uint32_t fat_fsize(int fd) {
 		return 0;
 	return fat_fd[i].file_size;
 }
+*/
 
-
-uint32_t fat_ftell(int fd) {
-	int i;
+uint32_t fat_ftell(int8_t fd);/* {
+	uint8_t i;
 
 	if (fd < 0)
 		return 0;
@@ -570,10 +570,10 @@ uint32_t fat_ftell(int fd) {
 		return 0;
 	return fat_fd[i].fpos;
 }
+*/
 
-
-bool fat_read_sect(int fd) {
-	unsigned int i;
+bool fat_read_sect(int8_t fd) {
+	uint8_t i;
 	uint32_t old_cluster, sector;
 	struct FATFileDescriptor *desc;
 
@@ -606,8 +606,8 @@ bool fat_read_sect(int fd) {
 }
 
 
-bool fat_write_sect(int fd) {
-	unsigned int i;
+bool fat_write_sect(int8_t fd) {
+	uint8_t i;
 	uint32_t old_cluster, sector;
 	struct FATFileDescriptor *desc;
 

@@ -9,6 +9,9 @@
 	.def	_fat_Select
 	.def	_fat_ReadSector
 	.def	_fat_WriteSector
+	.def	_fat_fsize
+	.def	_fat_ftell
+	.def	_fat_close
 
 	.def	_next_cluster
 	.def	_fname_to_fatname

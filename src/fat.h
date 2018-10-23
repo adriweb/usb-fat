@@ -52,12 +52,12 @@ struct FATDirList {
 };
 
 bool init_fat(void);
-void fat_close(int fd);
+void fat_close(int8_t fd);
 int8_t fat_open(const char *path, int flags);
-uint32_t fat_fsize(int fd);
-uint32_t fat_ftell(int fd);
-bool fat_read_sect(int fd);
-bool fat_write_sect(int fd);
+uint32_t fat_fsize(int8_t fd);
+uint32_t fat_ftell(int8_t fd);
+bool fat_read_sect(int8_t fd);
+bool fat_write_sect(int8_t fd);
 bool delete_file(const char *path);
 bool create_file(char *path, char *name, uint8_t attrib);
 uint8_t fat_get_stat(const char *path);

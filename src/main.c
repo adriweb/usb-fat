@@ -44,7 +44,7 @@ void open_fat_file(void) {
     uint8_t num;
     fat_partition_t fat_partitions[MAX_PARTITIONS];
     char buf[256];
-    int fd;
+    int8_t fd;
 
     sector_buff = sect;
 

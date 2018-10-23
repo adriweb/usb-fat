@@ -280,21 +280,21 @@ _init_fat:
 	ret
 .goodu8:
 	pop	af			; if (fat_state.type <= fat_type_fat16)
-	jr	nz,l_18
-
+	jr	nz,.fat32size
+.fat16size:
 	xor	a,a
 	sbc	hl,hl
 	ld	l,(iy + 22)
 	ld	h,(iy + 23)
 	ld	(_fat_state + 8),hl	; fat_state.fat_size = get16(data + 22);
 	ld	(_fat_state + 11),a
-	jr	l_20
-l_18:
+	jr	.fatgotsize
+.fat32size:
 	ld	hl,(iy + 36)		; fat_state.fat_size = get32(data + 36);
 	ld	a,(iy + 39)
 	ld	(_fat_state + 8),hl
 	ld	(_fat_state + 11),a
-l_20:
+.fatgotsize:
 	xor	a,a			; fat_state.fat_pos = reserved_sectors;
 	sbc	hl,hl
 	ld	l,(iy + 14)
@@ -340,7 +340,7 @@ l_20:
 
 	ld	a,(_fat_state + 24)	; if (fat_state.type == fat_type_fat32)
 	cp	a,1
-	jr	nz,l_28
+	jr	nz,.inited
 	ld	bc,(_fat_state + 16)	; fat_state.data_region = fat_state.root_dir_pos;
 	ld	a,(_fat_state + 19)
 	ld	(_fat_state + 20),bc
@@ -375,12 +375,12 @@ l_20:
 	ld	bc,$615252
 	ld	a,$41
 	call	__lcmpu
-	jr	nz,l_28
+	jr	nz,.inited
 	ld	bc,510
 	lea	hl,iy
 	add	hl,bc
 	call	test_sector
-	jr	nz,l_28
+	jr	nz,.inited
 
 	ld	bc,488			; set32(data + 488, 0xffffffff);
 	lea	hl,iy
@@ -398,19 +398,72 @@ l_20:
 	ld	hl,0
 .fsinfo := $ - 3
 	call	write_sector		; write_sector(fsinfo, data);
-l_28:
+.inited:
 	ld	b,3			; for (i = 0; i < max_fd_open; i++)
 	ld	hl,_fat_fd
 	ld	de,26
-l_25:
+.setkeys:
 	ld	(hl),255		; fat_fd[i].key = -1;
 	add	hl,de
-	djnz	l_25
-l_27:
+	djnz	.setkeys
 
 	ld	a,1
 	ld	(_fat_state + 0),a	; fat_state.valid = true;
 	ret				; return 1;
+
+_fat_fsize:
+	pop	de
+	pop	hl
+	push	hl
+	push	de
+	call	fatfindfd
+	ld	hl,(iy + 21)
+	ld	e,(iy + 24)		; return fat_fd[i].file_size;
+	ret
+
+_fat_ftell:
+	pop	de
+	pop	hl
+	push	hl
+	push	de
+	call	fatfindfd
+	ld	hl,(iy + 17)
+	ld	e,(iy + 20)		; return fat_fd[i].fpos;
+	ret
+
+_fat_close:
+	pop	de
+	pop	hl
+	push	hl
+	push	de
+	call	fatfindfd
+	ld	(hl),-1			; fat_fd[i].key = -1;
+	ret
+
+fatfindfd:
+	ld	a,l
+	or	a,a
+	jp	p,.valid
+.ret0:
+	pop	de			; pop return
+	or	a,a
+	sbc	hl,hl			; if (fd < 0) return 0;
+	ld	e,0
+	ret
+.valid:
+	ld	b,3			; for (i = 0; i < max_fd_open; i++)
+	ld	hl,_fat_fd
+	ld	de,26
+.find:
+	cp	a,(hl)			; if (fat_fd[i].key == fd)
+	jr	z,.found
+	add	hl,de
+	djnz	.find
+	jr	.ret0
+.found:
+	push	hl
+	pop	iy
+	ret
 
 ; euhl = sector lba
 read_sector:
