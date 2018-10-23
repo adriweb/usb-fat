@@ -36,6 +36,12 @@ initDevice:
 	call	devSelectConfig
 	ret
 
+_usb_Detached:
+	call	debugStr
+	db	'usb detached',0
+	call	debugNewLine
+	jp	debugAbort
+
 setup:
 	ld	iy,0
 device := $ - 3

@@ -221,6 +221,8 @@ xferCdbPtr := $ - 3
 	call	qhRetry
 	or	a,a
 	ret	z			; check the command was accepted
+	cp	a,1
+	jp	z,_usb_Detached
 	add	a,a			; check if stall
 	call	nz,debugAbort
 .resendCbw:
@@ -247,6 +249,8 @@ msdDataIn:
 	call	qhRetry
 	or	a,a
 	ret	z
+	cp	a,1
+	jp	z,_usb_Detached
 	cp	a,$80
 	jr	nz,wut
 	jq	msdClrInStall
@@ -262,6 +266,8 @@ msdDataOut:
 	call	qhRetry
 	or	a,a
 	ret	z
+	cp	a,1
+	jp	z,_usb_Detached
 	add	a,a
 	call	nz,debugAbort
 	jq	msdClrOutStall
@@ -270,6 +276,8 @@ msdStatusTransport:
 	call	msdStatusXfer
 	or	a,a
 	jr	z,msdCheckValidCsw
+	cp	a,1
+	jp	z,_usb_Detached
 	add	a,a
 	call	nz,debugAbort
 msdStatusStall:
@@ -277,6 +285,8 @@ msdStatusStall:
 	call	msdStatusXfer	; attempt to read csw again
 	or	a,a
 	jr	z,msdCheckValidCsw
+	cp	a,1
+	jp	z,_usb_Detached
 	add	a,a
 	call	nz,debugAbort
 	call	msdPerformResetRecovery
