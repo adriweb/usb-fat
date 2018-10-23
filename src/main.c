@@ -63,6 +63,8 @@ void open_fat_file(void) {
         return;
     }
 
+    os_line("locating filesystem");
+
     /* find avaliable fat32 filesystems */
     num = fat_Find(fat_partitions, MAX_PARTITIONS);
     if (num == 0) {

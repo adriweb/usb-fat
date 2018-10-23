@@ -28,8 +28,6 @@ scsiInit:
 	ld	hl,scsiReadCapacity
 	ld	de,lb_addr
 	call	scsiRequest		; store the logical block address/size
-	ld	hl,scsiModeSense6	; get the things
-	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady	; test if ready again
 	call	scsiDefaultRequest
 	ld	hl,(block_size)
