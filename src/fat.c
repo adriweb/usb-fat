@@ -74,7 +74,7 @@ struct FATFileDescriptor {
 };
 
 struct FATFileDescriptor fat_fd[MAX_FD_OPEN];
-int32_t fat_key = 0;
+int8_t fat_key = 0;
 
 uint32_t GET_ENTRY_CLUSTER(unsigned int e) {
     return (((GET16(sector_buff + ((e) * 32 + 20)) << 16) | (GET16(sector_buff + ((e) * 32 + 26)))) & (fat_state.type != FAT_TYPE_FAT32 ? 0xFFFF : ~0));
