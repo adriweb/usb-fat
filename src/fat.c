@@ -501,7 +501,7 @@ void fat_close(int fd) {
 }
 
 
-int fat_open(const char *path, int flags) {
+int8_t fat_open(const char *path, int flags) {
 	unsigned int i, index;
 	uint32_t sector;
 	struct FATFileDescriptor *desc;
@@ -525,22 +525,22 @@ int fat_open(const char *path, int flags) {
 
 	desc = &fat_fd[i]; // wtf!
 
-	fat_fd[i].write = flags & O_WRONLY ? true : false;
-	fat_fd[i].entry_sector = sector;
-	fat_fd[i].entry_index = index;
-	fat_fd[i].first_cluster = GET_ENTRY_CLUSTER(index);
-	if (fat_fd[i].first_cluster == 0) {
-		if (fat_fd[i].write)
-			fat_fd[i].first_cluster = alloc_cluster(fat_fd[i].entry_sector, fat_fd[i].entry_index, 0);
-		fat_fd[i].file_size = 0;
+	desc->write = flags & O_WRONLY ? true : false;
+	desc->entry_sector = sector;
+	desc->entry_index = index;
+	desc->first_cluster = GET_ENTRY_CLUSTER(index);
+	if (desc->first_cluster == 0) {
+		if (desc->write)
+			desc->first_cluster = alloc_cluster(desc->entry_sector, desc->entry_index, 0);
+		desc->file_size = 0;
 	} else {
-		fat_fd[i].file_size = GET32(sector_buff + (index * 32 + 28));
+		desc->file_size = GET32(sector_buff + (index * 32 + 28));
 	}
 
-	fat_fd[i].current_cluster = fat_fd[i].first_cluster;
-	fat_fd[i].fpos = 0;
-	fat_fd[i].key = fat_key++;
-	return fat_fd[i].key;
+	desc->current_cluster = desc->first_cluster;
+	desc->fpos = 0;
+	desc->key = fat_key++;
+	return desc->key;
 }
 
 

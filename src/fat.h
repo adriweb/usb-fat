@@ -53,7 +53,7 @@ struct FATDirList {
 
 bool init_fat(void);
 void fat_close(int fd);
-int fat_open(const char *path, int flags);
+int8_t fat_open(const char *path, int flags);
 uint32_t fat_fsize(int fd);
 uint32_t fat_ftell(int fd);
 bool fat_read_sect(int fd);
