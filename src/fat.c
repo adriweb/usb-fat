@@ -40,8 +40,6 @@ freely, subject to the following restrictions:
 #define SET16(p, w)		((*((uint16_t*)(p))) = w)
 #define SET32(p, w)		((*((uint32_t*)(p))) = w)
 
-#define GET_ENTRY_CLUSTER(e)	(((GET16(sector_buff + ((e) * 32 + 20)) << 16) | (GET16(sector_buff + ((e) * 32 + 26)))) & (fat_state.type != FAT_TYPE_FAT32 ? 0xFFFF : ~0))
-
 static uint32_t locate_record(const char *path, unsigned int *record_index, const char *tail);
 
 uint8_t *sector_buff;
@@ -77,6 +75,10 @@ struct FATFileDescriptor {
 
 struct FATFileDescriptor fat_fd[MAX_FD_OPEN];
 int32_t fat_key = 0;
+
+uint32_t GET_ENTRY_CLUSTER(unsigned int e) {
+    return (((GET16(sector_buff + ((e) * 32 + 20)) << 16) | (GET16(sector_buff + ((e) * 32 + 26)))) & (fat_state.type != FAT_TYPE_FAT32 ? 0xFFFF : ~0));
+}
 
 bool end_of_chain_mark(uint32_t cluster);/* {
 	if (fat_state.type == FAT_TYPE_FAT16)
