@@ -1,4 +1,5 @@
-xferDataPtrDefault  := usbbuf
+xferDataPtrDefault   := usbbuf
+xferDataPtrSense := usbbuf + 512
 
 initMsd:
 	call	initDevice
@@ -18,10 +19,6 @@ scsiInit:
 	ld	a,(ep_out)
 	ld	(reqClrOutStall + wIndex),a
 	ld	hl,scsiInquiry
-	call	scsiDefaultRequest
-	ld	hl,scsiTestUnitReady
-	call	scsiDefaultRequest
-	ld	hl,scsiReqestSense
 	call	scsiDefaultRequest
 	ld	hl,scsiTestUnitReady
 	call	scsiDefaultRequest
@@ -310,6 +307,11 @@ msdPhaseError:
 	inc	a
 	ret
 msdSenseError:
+	ld	de,xferDataPtrSense
+	ld	hl,scsiReqestSense
+	call	scsiRequest
+	ld	a,(xferDataPtrSense + 2)
+	call	debugHexA
 	call	debugAbort
 
 msdStatusXfer:
