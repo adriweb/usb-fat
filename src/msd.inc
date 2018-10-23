@@ -20,8 +20,11 @@ scsiInit:
 	ld	(reqClrOutStall + wIndex),a
 	ld	hl,scsiInquiry
 	call	scsiDefaultRequest
+.unitattention:
 	ld	hl,scsiTestUnitReady
 	call	scsiDefaultRequest
+	cp	a,6
+	jr	z,.unitattention
 	ld	hl,scsiReadCapacity
 	ld	de,lb_addr
 	call	scsiRequest		; store the logical block address/size
@@ -309,7 +312,7 @@ msdPhaseError:
 msdSenseError:
 	ld	hl,msdSenseCount
 	or	a,(hl)
-	call	nz,abort
+	call	nz,debugAbort
 	inc	(hl)
 	ld	de,xferDataPtrSense
 	ld	hl,scsiReqestSense
@@ -317,7 +320,6 @@ msdSenseError:
 	xor	a,a
 	ld	(msdSenseCount),a
 	ld	a,(xferDataPtrSense + 2)
-	call	debugHexA
 	ret
 
 msdSenseCount:
