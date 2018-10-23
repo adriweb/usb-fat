@@ -166,10 +166,8 @@ _next_cluster:
 _end_of_chain_mark:
 	pop	de
 	pop	hl
-	dec	sp
-	pop	af
-	dec	sp
-	dec	sp
+	pop	bc
+	push	bc
 	push	hl
 	push	de
 	ld	de,8
@@ -181,6 +179,7 @@ _end_of_chain_mark:
 	ret
 .fat32:
 	add	hl,de
+	ld	a,c
 	adc	a,$f0
 	sbc	a,a
 	ret
