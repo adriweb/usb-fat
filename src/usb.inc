@@ -46,7 +46,8 @@ setup:
 	ld	iy,0
 device := $ - 3
 	call	controlDefaultTransfer
-	jp	qhWait
+	ld	b,0
+	jp	qhRetry
 
 reqDevDesc18:
 	db	$80,6,0,1,0,0,18,0

@@ -475,27 +475,27 @@ qhAlloc:
 ;  bc = ?
 ;  de = ?
 ;  hl = ?
-qhWait:
-	ld	hl,(ix+qhFirstQtd)
-.wait:
-;	debugCallStr	'Waiting for transfer '
-;	debugCall	debugHexUHL
-;	debugCallLine	' to complete...'
-	ld	de,(hl) ; FIXME: short packets!!!
-	bit	0,e
-	ret	nz
-	set	bQtdStatus,l
-.status:
-	bit	7,(hl)
-	jr	nz,.status
-	ld	a,(hl)
-	res	bQtdStatus,l
-	call	qtdFree
-	ex	de,hl
-	ld	(ix+qhFirstQtd),hl
-	bit	6,a
-	jr	z,.wait
-	call	debugAbort
+;qhWait:
+;	ld	hl,(ix+qhFirstQtd)
+;.wait:
+;;	debugCallStr	'Waiting for transfer '
+;;	debugCall	debugHexUHL
+;;	debugCallLine	' to complete...'
+;	ld	de,(hl) ; FIXME: short packets!!!
+;	bit	0,e
+;	ret	nz
+;	set	bQtdStatus,l
+;.status:
+;	bit	7,(hl)
+;	jr	nz,.status
+;	ld	a,(hl)
+;	res	bQtdStatus,l
+;	call	qtdFree
+;	ex	de,hl
+;	ld	(ix+qhFirstQtd),hl
+;	bit	6,a
+;	jr	z,.wait
+;	call	debugAbort
 
 ; Input:
 ;  ix = qh
@@ -505,33 +505,33 @@ qhWait:
 ;  bc = ?
 ;  de = ?
 ;  hl = ?
-qhReap:
-	ld	hl,(ix+qhFirstQtd)
-	xor	a,a
-	jr	.wait
-.loop:
-	and	a,(bmQtdStatusHalted or bmQtdStatusBufErr or bmQtdStatusBabble or bmQtdStatusXactErr or bmQtdStatusMissedUframe) shl 1
-	jr	nz,.skip
-	set	bQtdStatus,l
-.shift:	ld	a,(hl)
-	rlca
-	jr	c,.shift
-	res	bQtdStatus,l
-.skip:
-	call	qtdFree
-	ex	de,hl
-	ld	(ix+qhFirstQtd),hl
-.wait:
-;	debugCallStr	'Waiting for transfer '
-;	debugCall	debugHexUHL
-;	debugCallLine	' to complete...'
-	ld	de,(hl) ; FIXME: short packets!!!
-	bit	0,e
-	jr	z,.loop
-	ld	(ix+qhOverlay+qtdNext),hl ; flush any pending transactions
-	ld	(ix+qhOverlay+qtdAltNext),hl
-	ld	(ix+qhOverlay+qtdStatus),0 ; clear pipe halt
-	ret
+;qhReap:
+;	ld	hl,(ix+qhFirstQtd)
+;	xor	a,a
+;	jr	.wait
+;.loop:
+;	and	a,(bmQtdStatusHalted or bmQtdStatusBufErr or bmQtdStatusBabble or bmQtdStatusXactErr or bmQtdStatusMissedUframe) shl 1
+;	jr	nz,.skip
+;	set	bQtdStatus,l
+;.shift:	ld	a,(hl)
+;	rlca
+;	jr	c,.shift
+;	res	bQtdStatus,l
+;.skip:
+;	call	qtdFree
+;	ex	de,hl
+;	ld	(ix+qhFirstQtd),hl
+;.wait:
+;;	debugCallStr	'Waiting for transfer '
+;;	debugCall	debugHexUHL
+;;	debugCallLine	' to complete...'
+;	ld	de,(hl) ; FIXME: short packets!!!
+;	bit	0,e
+;	jr	z,.loop
+;	ld	(ix+qhOverlay+qtdNext),hl ; flush any pending transactions
+;	ld	(ix+qhOverlay+qtdAltNext),hl
+;	ld	(ix+qhOverlay+qtdStatus),0 ; clear pipe halt
+;	ret
 
 ; Input:
 ;  b = number of tries
