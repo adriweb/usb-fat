@@ -203,9 +203,12 @@ usbWaitForConnection:
 ;	db	'Waiting for connection...',0
 ;	call	debugNewLine
 	ld	hl,mpUsbPortSC
-.wait:
+.waitconn:
 	bit	0,(hl)
-	jr	z,.wait
+	jr	z,.waitconn
+	ld	(hl),1 shl 1
+	bit	0,(hl)
+	jr	z,.waitconn
 	call	usbBusReset
 	ld	ix,ep0Desc
 	lea	iy,ix+devRoot-ep0Desc
@@ -235,8 +238,7 @@ usbWaitForConnection:
 ;	call	debugStr
 ;	db	'Transfers added...',0
 ;	call	debugNewLine
-	call	qhWait
-	call	z,debugAbort
+	call	qhRetryMaxOrAbort
 	pop	iy
 	pop	af
 	ld	(ix+qhAddr),a
@@ -402,7 +404,7 @@ devSelectConfig:
 	call	.next
 	pop	ix
 	call	c,debugAbort
-	jp	qhWait
+	jp	qhRetryMaxOrAbort
 .next:
 	or	a,a
 	sbc	hl,hl
@@ -447,7 +449,7 @@ getConfigDescTotalLength:
 	dec	de;reqGetConfDesc4
 	ld	hl,setupPacket
 	call	controlDefaultTransfer
-	call	qhWait
+	call	qhRetryMaxOrAbort
 	ld	hl,(setupPacket+wTotalLength)
 	inc	hl
 	dec.s	hl
@@ -529,6 +531,58 @@ qhReap:
 	ld	(ix+qhOverlay+qtdNext),hl ; flush any pending transactions
 	ld	(ix+qhOverlay+qtdAltNext),hl
 	ld	(ix+qhOverlay+qtdStatus),0 ; clear pipe halt
+	ret
+
+; Input:
+;  b = number of tries
+;  ix = qh
+; Output:
+;  a = err code
+;  zf = no error
+;  f = ?
+;  b = ?
+;  de = ?
+;  hl = ?
+qhRetry.retry:
+	ld	(hl),bmQtdStatusActive
+	ld	a,(ix+qhOverlay+qtdPid)
+	or	a,3 shl 2
+	ld	(ix+qhOverlay+qtdPid),a
+	ld	(ix+qhOverlay+qtdStatus),bmQtdStatusActive ; reactivate transfer
+qhRetry.loop:
+	set	bQtdStatus,l
+qhRetry.wait:
+	ld	a,(mpUsbPortSC)
+	rrca
+	and	1
+	jr	nz,qhRetry.error
+	ld	a,(hl)
+	add	a,a
+	jr	c,qhRetry.wait
+	jr	nz,qhRetry.halt
+	res	bQtdStatus,l
+	ld	(ix+qhFirstQtd),de
+	call	qtdFree
+qhRetry:
+	ld	hl,(ix+qhFirstQtd)
+	ld	de,(hl)
+	bit	0,e
+	jr	z,.loop
+	xor	a,a
+	ret
+.halt:
+	cp	a,bmQtdStatusHalted shl 1
+	jr	z,.error
+	djnz	.retry
+.error:
+	res	bQtdStatus,l
+.reap:
+	call	qtdFree
+	ex	de,hl
+	ld	de,(hl)
+	bit	0,e
+	jr	z,.reap
+	ld	(ix+qhFirstQtd),hl
 	ret
 
 ; Input:
@@ -655,13 +709,15 @@ qtdAlloc:
 ; Input:
 ;  hl = qtd
 ; Output:
-;  bc = ?
+;  f = ?
 qtdFree:
 	bit	0,l
 	call	nz,debugAbort
-	ld	bc,(qtdFreeList)
-	ld	(hl),bc
+	push	de
+	ld	de,(qtdFreeList)
+	ld	(hl),de
 	ld	(qtdFreeList),hl
+	pop	de
 	ret
 
 ; Output:
@@ -741,7 +797,13 @@ getStrDesc:
 	pop	de;setupPacket
 	pop	hl;buf
 	call	controlDefaultTransfer
-	jp	qhWait
+
+qhRetryMaxOrAbort:
+	ld	b,0
+	call	qhRetry
+	ret	z
+	call	debugHexA
+	call	debugAbort
 
 ; Input:
 ;  de = req
