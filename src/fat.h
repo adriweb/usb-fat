@@ -64,7 +64,6 @@ uint8_t fat_get_stat(const char *path);
 void fat_set_stat(const char *path, uint8_t stat);
 void fat_set_fsize(const char *path, uint32_t size);
 int fat_dirlist(const char *path, struct FATDirList *list, int size, int skip);
-bool fat_valid();
 
 /* These should be provided by you */
 /* Returns < 0 on error */

@@ -506,12 +506,12 @@ int8_t fat_open(const char *path, int flags) {
 	uint32_t sector;
 	struct FATFileDescriptor *desc;
 
-	if (!fat_state.valid)
-		return -1;
-
-	for (i = 0; i < MAX_FD_OPEN; i++)
-		if (fat_fd[i].key < 0)
+	for (i = 0; i < MAX_FD_OPEN; i++) {
+		desc = &fat_fd[i];
+		if (desc->key < 0)
 			break;
+	}
+
 	if (i == MAX_FD_OPEN)
 		return -1;
 	
@@ -522,8 +522,6 @@ int8_t fat_open(const char *path, int flags) {
 	if (sector_buff[index * 32 + 11] & 0x10)
 		/* Don't allow opening a directory */
 		return -1;
-
-	desc = &fat_fd[i]; // wtf!
 
 	desc->write = flags & O_WRONLY ? true : false;
 	desc->entry_sector = sector;
@@ -579,10 +577,11 @@ bool fat_read_sect(int fd) {
 
 	if (fd < 0)
 		return false;
-	for (i = 0; i < MAX_FD_OPEN; i++)
-		if (fat_fd[i].key == fd)
+	for (i = 0; i < MAX_FD_OPEN; i++) {
+		desc = &fat_fd[i];
+		if (desc->key == fd)
 			break;
-        desc = &fat_fd[i];
+	}
 	if (!desc->current_cluster)
 		return false;
 	if (desc->fpos == desc->file_size)
@@ -612,10 +611,11 @@ bool fat_write_sect(int fd) {
 
 	if (fd < 0)
 		return false;
-	for (i = 0; i < MAX_FD_OPEN; i++)
-		if (fat_fd[i].key == fd)
+	for (i = 0; i < MAX_FD_OPEN; i++) {
+		desc = &fat_fd[i];
+		if (desc->key == fd)
 			break;
-        desc = &fat_fd[i];
+	}
 	if (!desc->write)
 		return false;
 	if (!desc->current_cluster)
@@ -673,8 +673,7 @@ bool delete_file(const char *path) {
 	uint32_t i;
 	unsigned int index, index32;
 	uint32_t sector, cluster;
-	if (!fat_state.valid)
-		return false;
+
 	sector = locate_record(path, &index, NULL);
 	if (!sector)
 		return false;
@@ -885,7 +884,3 @@ int fat_dirlist(const char *path, struct FATDirList *list, int size, int skip) {
 	}
 }
 
-
-bool fat_valid() {
-	return fat_state.valid;
-}
