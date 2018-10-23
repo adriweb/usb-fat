@@ -299,21 +299,15 @@ msdCheckValidCsw:
 	jr	nz,msdInvalidCsw
 msdValidCsw:
 	ld	hl,(packetCSW + 8)
+	ld	a,(packetCSW + 8 + 3)
 	add	hl,de
 	or	a,a
+	ld	a,$10
+	ret	nz
 	sbc	hl,de
-	ret	z			; if residue == 0, success
-	ex	de,hl
-	ld	hl,(xferDataLen)	; buffer += old_length - residue, new_length = residue
-	or	a,a
-	sbc	hl,de
-	ld	(xferDataLen),de
-	ld	de,(xferDataPtr)
-	add	hl,de
-	ld	(xferDataPtr),hl
+	ret	nz			; if residue != 0, fail
 	xor	a,a
-	inc	a
-	ret				; send the next cbw
+	ret
 msdInvalidCsw:
 	dec	a			; check for phase error (we can recover)
 	jr	z,msdSenseError		; handle command fail
