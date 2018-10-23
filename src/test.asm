@@ -18,6 +18,7 @@
 	.ref	_fat_state
 	.ref	_sector_buff
 	.ref	_fat_fd
+	.ref	_exit
 
 usbbuf			:= $D40000
 
@@ -160,6 +161,7 @@ __frustof                  := 00002C8h
 _PutC			:= $0207B8
 _PutS			:= $0207C0
 _DispHL_s		:= $0207BC
+_os_GetKey		:= $021D38
 _DispHL			:= $021EE0
 _NewLine		:= $0207F0
 _usb_IsBusPowered	:= $0003CC

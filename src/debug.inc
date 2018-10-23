@@ -2,16 +2,24 @@ debugAbort:
 	call	debugNewLine
 	call	debugStr
 	db	'Abort called at ',0
-	ld	b,5
-	jr	.skip
-.string:
+	ld	b,6
+	or	a,a
+	sbc	hl,hl
+	add	hl,sp
+	jr	.enter
+.loop:
+	inc	hl
+	inc	hl
+	inc	hl
 	call	debugStr
 	db	'<-',0
-.skip:
-	pop	hl
-	call	debugHexUHL
-	djnz	.string
-	jr	$
+.enter:
+	ld	de,(hl)
+	call	debugHexUDE
+	djnz	.loop
+	call	_os_GetKey
+	call	usbCleanup
+	jp	_exit
 
 debugHexBlockBC:
 	ex	(sp),hl
@@ -22,13 +30,13 @@ debugHexBlockBC:
 	inc	hl
 	inc	hl
 	inc	hl
-.next:
+.loop:
 	call	debugHex_DE_
 	inc	de
 	dec	bc
 	ld	a,c
 	or	a,b
-	jr	nz,.next
+	jr	nz,.loop
 	pop	af
 	pop	bc
 	pop	de
@@ -41,10 +49,10 @@ debugHexBlockHL:
 	push	bc
 	ld	b,(hl)
 	inc	hl
-.next:
+.loop:
 	call	debugHex_DE_
 	inc	de
-	djnz	.next
+	djnz	.loop
 	pop	bc
 	pop	de
 	ex	(sp),hl
@@ -60,10 +68,10 @@ debugHexBlock:
 	inc	hl
 	ld	b,(hl)
 	inc	hl
-.next:
+.loop:
 	call	debugHex_DE_
 	inc	de
-	djnz	.next
+	djnz	.loop
 	pop	bc
 	pop	de
 	ex	(sp),hl
@@ -85,19 +93,19 @@ debugHexHLU:
 debugUpper:
 	inc	sp
 	pop	af
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexB:
 	push	af
 	ld	a,b
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexD:
 	push	af
 	ld	a,d
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexH:
 	push	af
 	ld	a,h
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexUBC:
 	call	debugHexBCU
 debugHexBC:
@@ -105,7 +113,7 @@ debugHexBC:
 debugHexC:
 	push	af
 	ld	a,c
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexUDE:
 	call	debugHexDEU
 debugHexDE:
@@ -113,7 +121,7 @@ debugHexDE:
 debugHexE:
 	push	af
 	ld	a,e
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexUHL:
 	call	debugHexHLU
 debugHexHL:
@@ -121,22 +129,22 @@ debugHexHL:
 debugHexL:
 	push	af
 	ld	a,l
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHex_BC_:
 	push	af
 	ld	a,(bc)
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHex_DE_:
 	push	af
 	ld	a,(de)
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHex_HL_:
 	push	af
 	ld	a,(hl)
-	jr	debugDraw
+	jr	debugHexA.enter
 debugHexA:
 	push	af
-debugDraw:
+.enter:
 	push	iy
 	ld	iy,flags
 	push	af
@@ -144,13 +152,13 @@ debugDraw:
 	rrca
 	rrca
 	rrca
-	call	.draw
+	call	.nibble
 	pop	af
-	call	.draw
+	call	.nibble
 	pop	iy
 	pop	af
 	ret
-.draw:
+.nibble:
 	or	a,$F0
 	daa
 	add	a,$A0
