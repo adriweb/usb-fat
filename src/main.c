@@ -24,7 +24,7 @@ unsigned char key_Any(void);
 const char *rdtest = "RDTEST.TXT";
 const char *wrtest = "WRTEST.TXT";
 
-#define WR_SIZE 512
+#define WR_SIZE 8192
 
 /* cannot use getcsc in usb */
 void wait_user(void) {
@@ -126,6 +126,14 @@ void open_fat_file(void) {
 
         fat_close(fd);
 	fat_set_fsize(wrtest, WR_SIZE);
+    }
+
+    fd = fat_open(wrtest, O_RDONLY);
+    if (fd >= 0) {
+	sprintf(buf, "fat_fsize: %u", (unsigned int)fat_fsize(fd));
+        os_line(buf);
+	sprintf(buf, "fat_ftell: %u", (unsigned int)fat_ftell(fd));
+        os_line(buf);
     }
 }
 

@@ -55,7 +55,8 @@ struct {
 	uint8_t		cluster_size;
 	uint16_t	root_directory_size;
 	uint32_t	clusters;
-	uint32_t	fat_size;
+	uint24_t	fat_size;
+	uint8_t		padding;
 	uint32_t	fat_pos;
 	uint32_t	root_dir_pos;
 	uint32_t	data_region;
@@ -342,7 +343,7 @@ static uint32_t locate_record(const char *path, unsigned int *record_index, cons
 
 
 uint32_t alloc_cluster(uint32_t entry_sector, uint32_t entry_index, uint32_t old_cluster) {
-	uint32_t i, j;
+	unsigned int i, j;
 	uint32_t cluster = 0, avail_cluster;
 	int fat_size, ent_per_sec, eocm, mask, shift;
 

@@ -284,30 +284,30 @@ _init_fat:
 .fat16size:
 	xor	a,a
 	sbc	hl,hl
-	ld	l,(iy + 22)
+	ld	l,(iy + 22)		; fat_state.fat_size = get16(data + 22);
 	ld	h,(iy + 23)
-	ld	(_fat_state + 8),hl	; fat_state.fat_size = get16(data + 22);
-	ld	(_fat_state + 11),a
 	jr	.fatgotsize
 .fat32size:
 	ld	hl,(iy + 36)		; fat_state.fat_size = get32(data + 36);
 	ld	a,(iy + 39)
-	ld	(_fat_state + 8),hl
-	ld	(_fat_state + 11),a
 .fatgotsize:
-	xor	a,a			; fat_state.fat_pos = reserved_sectors;
-	sbc	hl,hl
+	ld	(_fat_state + 8),hl
+	or	a,a
+	jr	z,.nottoobig
+	xor	a,a
+	ret
+.nottoobig:
+	push	hl
+	sbc	hl,hl			; fat_state.fat_pos = reserved_sectors;
 	ld	l,(iy + 14)
 	ld	h,(iy + 15)		; reserved_sectors = get16(data + 14);
 	ld	(_fat_state + 12),hl
 	ld	(_fat_state + 15),a
 
-	ld	a,(_fat_state + 11)	; fat_state.root_dir_pos = fat_state.fat_pos + fat_state.fat_size * 2;
-	ld	hl,(_fat_state + 8)
-	ld	e,a
-	xor	a,a
-	ld	bc,2
-	call	__lmulu
+	pop	hl			; fat_state.root_dir_pos = fat_state.fat_pos + fat_state.fat_size * 2;
+	ld	e,0
+	add	hl,hl
+	rl	e
 	ld	bc,(_fat_state + 12)
 	ld	a,(_fat_state + 15)
 	call	__ladd
