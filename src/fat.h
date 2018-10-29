@@ -72,4 +72,8 @@ int fat_dirlist(const char *path, struct FATDirList *list, int size, int skip);
 //int write_sector_call(uint32_t sector, uint8_t *data);
 //int read_sector_call(uint32_t sector, uint8_t *data);
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
+	
 #endif
