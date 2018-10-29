@@ -507,13 +507,16 @@ void fat_close(int8_t fd);/* {
 int8_t fat_open(const char *path, int flags) {
 	unsigned int i, index;
 	uint32_t sector;
-	struct FATFileDescriptor *desc;
+	struct FATFileDescriptor *desc = NULL;
 
 	for (i = 0; i < MAX_FD_OPEN; i++) {
 		desc = &fat_fd[i];
 		if (desc->key < 0)
 			break;
 	}
+
+	if (desc == NULL)
+		return -1;
 
 	if (i == MAX_FD_OPEN)
 		return -1;
@@ -576,7 +579,7 @@ uint32_t fat_ftell(int8_t fd);/* {
 bool fat_read_sect(int8_t fd) {
 	uint8_t i;
 	uint32_t old_cluster, sector;
-	struct FATFileDescriptor *desc;
+	struct FATFileDescriptor *desc = NULL;
 
 	if (fd < 0)
 		return false;
@@ -585,6 +588,8 @@ bool fat_read_sect(int8_t fd) {
 		if (desc->key == fd)
 			break;
 	}
+    if (desc == NULL)
+        return false;
 	if (!desc->current_cluster)
 		return false;
 	if (desc->fpos == desc->file_size)
@@ -610,7 +615,7 @@ bool fat_read_sect(int8_t fd) {
 bool fat_write_sect(int8_t fd) {
 	uint8_t i;
 	uint32_t old_cluster, sector;
-	struct FATFileDescriptor *desc;
+	struct FATFileDescriptor *desc = NULL;
 
 	if (fd < 0)
 		return false;
@@ -619,6 +624,8 @@ bool fat_write_sect(int8_t fd) {
 		if (desc->key == fd)
 			break;
 	}
+	if (desc == NULL)
+		return false;
 	if (!desc->write)
 		return false;
 	if (!desc->current_cluster)
