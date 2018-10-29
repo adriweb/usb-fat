@@ -52,10 +52,10 @@ void open_fat_file(void) {
 
     os_line("insert msd...");
 
-    asm("ld iy,$d00080");
-    asm("res 1,(iy + $0d)"); // no text buffer
-    asm("res 3,(iy + $4a)"); // use first buffer (negated by next)
-    asm("set 5,(iy + $4c)"); // only display
+    asm("ld iy,D00080h");
+    asm("res 1,(iy + 0Dh)"); // no text buffer
+    asm("res 3,(iy + 4Ah)"); // use first buffer (negated by next)
+    asm("set 5,(iy + 4Ch)"); // only display
 
     /* initialize mass storage device */
     if (!msd_Init()) {
@@ -92,47 +92,47 @@ void open_fat_file(void) {
     fd = fat_open(rdtest, O_RDONLY);
     if (fd >= 0) {
 
-	os_line("reading file...");
+        os_line("reading file...");
 
         timer_Control = TIMER1_DISABLE;
-        timer_1_ReloadValue = timer_1_Counter = 0;	
+        timer_1_ReloadValue = timer_1_Counter = 0;
         timer_Control = TIMER1_ENABLE | TIMER1_32K | TIMER1_UP;
 
-	for (size = 0; size < WR_SIZE; size += 512) {
-		fat_read_sect(fd);
-	}
+        for (size = 0; size < WR_SIZE; size += 512) {
+            fat_read_sect(fd);
+        }
 
-	ticks = (unsigned int)timer_1_Counter;
-	sprintf(buf, "ticks: %u", ticks);
+        ticks = (unsigned int)timer_1_Counter;
+        sprintf(buf, "ticks: %u", ticks);
         os_line(buf);
     }
 
     fd = fat_open(wrtest, O_WRONLY);
     if (fd >= 0) {
 
-	os_line("writing file...");
+        os_line("writing file...");
 
         timer_Control = TIMER1_DISABLE;
-        timer_1_ReloadValue = timer_1_Counter = 0;	
+        timer_1_ReloadValue = timer_1_Counter = 0;
         timer_Control = TIMER1_ENABLE | TIMER1_32K | TIMER1_UP;
 
-	for (size = 0; size < WR_SIZE; size += 512) {
-		fat_write_sect(fd);
-	}
+        for (size = 0; size < WR_SIZE; size += 512) {
+            fat_write_sect(fd);
+        }
 
-	ticks = (unsigned int)timer_1_Counter;
-	sprintf(buf, "ticks: %u", ticks);
+        ticks = (unsigned int)timer_1_Counter;
+        sprintf(buf, "ticks: %u", ticks);
         os_line(buf);
 
         fat_close(fd);
-	fat_set_fsize(wrtest, WR_SIZE);
+        fat_set_fsize(wrtest, WR_SIZE);
     }
 
     fd = fat_open(wrtest, O_RDONLY);
     if (fd >= 0) {
-	sprintf(buf, "fat_fsize: %u", (unsigned int)fat_fsize(fd));
+        sprintf(buf, "fat_fsize: %u", (unsigned int)fat_fsize(fd));
         os_line(buf);
-	sprintf(buf, "fat_ftell: %u", (unsigned int)fat_ftell(fd));
+        sprintf(buf, "fat_ftell: %u", (unsigned int)fat_ftell(fd));
         os_line(buf);
     }
 }
